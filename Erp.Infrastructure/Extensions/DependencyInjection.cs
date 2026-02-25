@@ -29,6 +29,7 @@ public static class DependencyInjection
         services.AddSingleton<IAccessControl, AccessControlService>();
         services.AddSingleton<IAuthService, AuthService>();
         services.AddSingleton<IUserService, UserService>();
+        services.AddSingleton<IItemCommandService, ItemCommandService>();
         services.AddSingleton<IItemQueryService, SearchItemsQueryHandler>();
 
         services.AddSingleton<IDataSeeder, ErpDataSeeder>();

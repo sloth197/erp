@@ -56,7 +56,88 @@ public sealed class Item
         TrackingType = trackingType;
         CategoryId = categoryId;
         UnitOfMeasureId = unitOfMeasureId;
+        RowVersion = GenerateRowVersion();
         CreatedAtUtc = DateTime.UtcNow;
         UpdatedAtUtc = DateTime.UtcNow;
+    }
+
+    public void Update(
+        string itemCode,
+        string name,
+        Guid categoryId,
+        Guid unitOfMeasureId,
+        TrackingType trackingType,
+        string? barcode)
+    {
+        if (string.IsNullOrWhiteSpace(itemCode))
+        {
+            throw new ArgumentException("Item code is required.", nameof(itemCode));
+        }
+
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new ArgumentException("Name is required.", nameof(name));
+        }
+
+        if (categoryId == Guid.Empty)
+        {
+            throw new ArgumentException("Category is required.", nameof(categoryId));
+        }
+
+        if (unitOfMeasureId == Guid.Empty)
+        {
+            throw new ArgumentException("Unit of measure is required.", nameof(unitOfMeasureId));
+        }
+
+        ItemCode = itemCode.Trim();
+        Barcode = string.IsNullOrWhiteSpace(barcode) ? null : barcode.Trim();
+        Name = name.Trim();
+        CategoryId = categoryId;
+        UnitOfMeasureId = unitOfMeasureId;
+        TrackingType = trackingType;
+        TouchForWrite();
+    }
+
+    public void Activate()
+    {
+        if (IsActive)
+        {
+            return;
+        }
+
+        IsActive = true;
+        TouchForWrite();
+    }
+
+    public void Deactivate()
+    {
+        if (!IsActive)
+        {
+            return;
+        }
+
+        IsActive = false;
+        TouchForWrite();
+    }
+
+    public bool MatchesRowVersion(byte[] rowVersion)
+    {
+        if (rowVersion is null || rowVersion.Length == 0)
+        {
+            return false;
+        }
+
+        return RowVersion.SequenceEqual(rowVersion);
+    }
+
+    private void TouchForWrite()
+    {
+        UpdatedAtUtc = DateTime.UtcNow;
+        RowVersion = GenerateRowVersion();
+    }
+
+    private static byte[] GenerateRowVersion()
+    {
+        return Guid.NewGuid().ToByteArray();
     }
 }
