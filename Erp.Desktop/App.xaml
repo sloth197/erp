@@ -1,9 +1,15 @@
 ﻿<Application x:Class="Erp.Desktop.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:Erp.Desktop"
-             StartupUri="MainWindow.xaml">
+             xmlns:views="clr-namespace:Erp.Desktop.Views"
+             xmlns:vms="clr-namespace:Erp.Desktop.ViewModels">
+    <!-- NOTE: Startup URI intentionally omitted; App.xaml.cs controls startup via Host/DI -->
     <Application.Resources>
-         
+        <ResourceDictionary>
+            <!-- ViewModel -> View mapping -->
+            <DataTemplate DataType="{x:Type vms:HomeViewModel}">
+                <views:HomeView />
+            </DataTemplate>
+        </ResourceDictionary>
     </Application.Resources>
 </Application>
