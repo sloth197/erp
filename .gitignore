@@ -1,0 +1,18 @@
+﻿# Build
+bin/
+obj/
+
+# VS Code
+.vscode/
+
+# User
+*.user
+*.suo
+*.cache
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
