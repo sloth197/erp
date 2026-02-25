@@ -10,6 +10,9 @@ public sealed class ErpDbContext : DbContext
     }
 
     public DbSet<Item> Items => Set<Item>();
+    public DbSet<ItemCategory> ItemCategories => Set<ItemCategory>();
+    public DbSet<UnitOfMeasure> UnitOfMeasures => Set<UnitOfMeasure>();
+    public DbSet<ItemUomConversion> ItemUomConversions => Set<ItemUomConversion>();
     public DbSet<User> Users => Set<User>();
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<Permission> Permissions => Set<Permission>();
@@ -22,6 +25,9 @@ public sealed class ErpDbContext : DbContext
         base.OnModelCreating(modelBuilder);
 
         ConfigureItems(modelBuilder);
+        ConfigureItemCategories(modelBuilder);
+        ConfigureUnitOfMeasures(modelBuilder);
+        ConfigureItemUomConversions(modelBuilder);
         ConfigureUsers(modelBuilder);
         ConfigureRoles(modelBuilder);
         ConfigurePermissions(modelBuilder);
@@ -36,12 +42,22 @@ public sealed class ErpDbContext : DbContext
         item.ToTable("items");
         item.HasKey(x => x.Id);
 
-        item.Property(x => x.Code)
-            .HasColumnName("code")
-            .IsRequired()
-            .HasMaxLength(30);
+        item.Property(x => x.Id)
+            .HasColumnName("id");
 
-        item.HasIndex(x => x.Code)
+        item.Property(x => x.ItemCode)
+            .HasColumnName("item_code")
+            .IsRequired()
+            .HasMaxLength(50);
+
+        item.HasIndex(x => x.ItemCode)
+            .IsUnique();
+
+        item.Property(x => x.Barcode)
+            .HasColumnName("barcode")
+            .HasMaxLength(100);
+
+        item.HasIndex(x => x.Barcode)
             .IsUnique();
 
         item.Property(x => x.Name)
@@ -49,9 +65,159 @@ public sealed class ErpDbContext : DbContext
             .IsRequired()
             .HasMaxLength(200);
 
+        item.Property(x => x.IsActive)
+            .HasColumnName("is_active")
+            .IsRequired()
+            .HasDefaultValue(true);
+
+        item.Property(x => x.TrackingType)
+            .HasColumnName("tracking_type")
+            .HasConversion<string>()
+            .HasMaxLength(30)
+            .IsRequired();
+
+        item.Property(x => x.CategoryId)
+            .HasColumnName("category_id")
+            .IsRequired();
+
+        item.Property(x => x.UnitOfMeasureId)
+            .HasColumnName("unit_of_measure_id")
+            .IsRequired();
+
+        item.Property(x => x.RowVersion)
+            .HasColumnName("row_version")
+            .IsRowVersion()
+            .IsConcurrencyToken();
+
         item.Property(x => x.CreatedAtUtc)
             .HasColumnName("created_at_utc")
             .IsRequired();
+
+        item.Property(x => x.UpdatedAtUtc)
+            .HasColumnName("updated_at_utc")
+            .IsRequired();
+
+        item.HasOne(x => x.Category)
+            .WithMany(x => x.Items)
+            .HasForeignKey(x => x.CategoryId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        item.HasOne(x => x.UnitOfMeasure)
+            .WithMany(x => x.Items)
+            .HasForeignKey(x => x.UnitOfMeasureId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+
+    private static void ConfigureItemCategories(ModelBuilder modelBuilder)
+    {
+        var category = modelBuilder.Entity<ItemCategory>();
+        category.ToTable("item_categories");
+        category.HasKey(x => x.Id);
+
+        category.Property(x => x.Id)
+            .HasColumnName("id");
+
+        category.Property(x => x.CategoryCode)
+            .HasColumnName("category_code")
+            .IsRequired()
+            .HasMaxLength(30);
+
+        category.HasIndex(x => x.CategoryCode)
+            .IsUnique();
+
+        category.Property(x => x.Name)
+            .HasColumnName("name")
+            .IsRequired()
+            .HasMaxLength(200);
+
+        category.Property(x => x.IsActive)
+            .HasColumnName("is_active")
+            .IsRequired()
+            .HasDefaultValue(true);
+
+        category.Property(x => x.CreatedAtUtc)
+            .HasColumnName("created_at_utc")
+            .IsRequired();
+
+        category.Property(x => x.UpdatedAtUtc)
+            .HasColumnName("updated_at_utc")
+            .IsRequired();
+    }
+
+    private static void ConfigureUnitOfMeasures(ModelBuilder modelBuilder)
+    {
+        var uom = modelBuilder.Entity<UnitOfMeasure>();
+        uom.ToTable("unit_of_measures");
+        uom.HasKey(x => x.Id);
+
+        uom.Property(x => x.Id)
+            .HasColumnName("id");
+
+        uom.Property(x => x.UomCode)
+            .HasColumnName("uom_code")
+            .IsRequired()
+            .HasMaxLength(30);
+
+        uom.HasIndex(x => x.UomCode)
+            .IsUnique();
+
+        uom.Property(x => x.Name)
+            .HasColumnName("name")
+            .IsRequired()
+            .HasMaxLength(100);
+
+        uom.Property(x => x.IsActive)
+            .HasColumnName("is_active")
+            .IsRequired()
+            .HasDefaultValue(true);
+
+        uom.Property(x => x.CreatedAtUtc)
+            .HasColumnName("created_at_utc")
+            .IsRequired();
+
+        uom.Property(x => x.UpdatedAtUtc)
+            .HasColumnName("updated_at_utc")
+            .IsRequired();
+    }
+
+    private static void ConfigureItemUomConversions(ModelBuilder modelBuilder)
+    {
+        var conversion = modelBuilder.Entity<ItemUomConversion>();
+        conversion.ToTable("item_uom_conversions");
+        conversion.HasKey(x => new { x.ItemId, x.FromUnitOfMeasureId, x.ToUnitOfMeasureId });
+
+        conversion.Property(x => x.ItemId)
+            .HasColumnName("item_id");
+
+        conversion.Property(x => x.FromUnitOfMeasureId)
+            .HasColumnName("from_unit_of_measure_id");
+
+        conversion.Property(x => x.ToUnitOfMeasureId)
+            .HasColumnName("to_unit_of_measure_id");
+
+        conversion.Property(x => x.Factor)
+            .HasColumnName("factor")
+            .HasPrecision(18, 6)
+            .IsRequired();
+
+        conversion.Property(x => x.CreatedAtUtc)
+            .HasColumnName("created_at_utc")
+            .IsRequired();
+
+        conversion.HasOne(x => x.Item)
+            .WithMany()
+            .HasForeignKey(x => x.ItemId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        conversion.HasOne(x => x.FromUnitOfMeasure)
+            .WithMany()
+            .HasForeignKey(x => x.FromUnitOfMeasureId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        conversion.HasOne(x => x.ToUnitOfMeasure)
+            .WithMany()
+            .HasForeignKey(x => x.ToUnitOfMeasureId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 
     private static void ConfigureUsers(ModelBuilder modelBuilder)
