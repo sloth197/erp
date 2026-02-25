@@ -1,4 +1,8 @@
+﻿using Erp.Application.Interfaces;
 using Erp.Infrastructure.Persistence;
+using Erp.Infrastructure.Seeding;
+using Erp.Infrastructure.Security;
+using Erp.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,7 +20,18 @@ public static class DependencyInjection
                 "Connection string 'ErpDb' was not found. Configure ConnectionStrings:ErpDb.");
         }
 
-        services.AddDbContext<ErpDbContext>(options => options.UseNpgsql(connectionString));
+        services.AddDbContextFactory<ErpDbContext>(options => options.UseNpgsql(connectionString));
+
+        services.AddSingleton<CurrentUserContext>();
+        services.AddSingleton<ICurrentUserContext>(sp => sp.GetRequiredService<CurrentUserContext>());
+
+        services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
+        services.AddSingleton<IAccessControl, AccessControlService>();
+        services.AddSingleton<IAuthService, AuthService>();
+        services.AddSingleton<IUserService, UserService>();
+
+        services.AddSingleton<IDataSeeder, ErpDataSeeder>();
+
         return services;
     }
 }

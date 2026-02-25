@@ -1,6 +1,10 @@
 ﻿using System;
 using System.Windows;
+using Erp.Desktop.Services;
 using Erp.Infrastructure.Extensions;
+using Erp.Infrastructure.Persistence;
+using Erp.Infrastructure.Seeding;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -11,11 +15,10 @@ public partial class App : System.Windows.Application
 {
     private IHost? _host;
 
-    protected override void OnStartup(StartupEventArgs e)
+    protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
 
-        // Build Host (DI container)
         _host = Host.CreateDefaultBuilder()
             .ConfigureAppConfiguration((_, configBuilder) =>
             {
@@ -26,25 +29,53 @@ public partial class App : System.Windows.Application
             {
                 services.AddInfrastructure(context.Configuration);
 
-                // Navigation
+                services.AddSingleton<IUserMessageService, UserMessageService>();
+
                 services.AddSingleton<Navigation.INavigationService, Navigation.NavigationService>();
 
-                // ViewModels
                 services.AddSingleton<ViewModels.MainWindowViewModel>();
-                services.AddSingleton<ViewModels.HomeViewModel>();
 
-                // Main window
+                services.AddTransient<ViewModels.LoginViewModel>();
+                services.AddTransient<ViewModels.HomeViewModel>();
+                services.AddTransient<ViewModels.ChangePasswordViewModel>();
+                services.AddTransient<ViewModels.UsersManagementViewModel>();
+                services.AddTransient<ViewModels.SettingsViewModel>();
+
+                services.AddTransient<ViewModels.NoticesViewModel>();
+                services.AddTransient<ViewModels.PartnersViewModel>();
+                services.AddTransient<ViewModels.ItemsViewModel>();
+                services.AddTransient<ViewModels.WarehousesViewModel>();
+                services.AddTransient<ViewModels.CodesViewModel>();
+                services.AddTransient<ViewModels.InventoryStockViewModel>();
+                services.AddTransient<ViewModels.InventoryInOutViewModel>();
+                services.AddTransient<ViewModels.InventoryAdjustmentViewModel>();
+                services.AddTransient<ViewModels.PurchaseOrdersViewModel>();
+                services.AddTransient<ViewModels.PurchaseReceiptViewModel>();
+                services.AddTransient<ViewModels.SalesOrdersViewModel>();
+                services.AddTransient<ViewModels.SalesRevenueViewModel>();
+                services.AddTransient<ViewModels.AccountVouchersViewModel>();
+                services.AddTransient<ViewModels.AccountReportsViewModel>();
+                services.AddTransient<ViewModels.AuditLogViewModel>();
+
                 services.AddSingleton<MainWindow>();
             })
             .Build();
 
-        _host.Start();
+        try
+        {
+            await _host.StartAsync();
+            await InitializeDatabaseAsync();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"애플리케이션 시작 실패: {ex.Message}", "ERP", MessageBoxButton.OK, MessageBoxImage.Error);
+            Shutdown();
+            return;
+        }
 
-        // Resolve and show MainWindow from DI
         var mainWindow = _host.Services.GetRequiredService<MainWindow>();
         MainWindow = mainWindow;
 
-        // Close app when MainWindow closes
         ShutdownMode = ShutdownMode.OnMainWindowClose;
 
         mainWindow.Show();
@@ -62,5 +93,21 @@ public partial class App : System.Windows.Application
         }
 
         base.OnExit(e);
+    }
+
+    private async Task InitializeDatabaseAsync()
+    {
+        if (_host is null)
+        {
+            throw new InvalidOperationException("Host is not initialized.");
+        }
+
+        using var scope = _host.Services.CreateScope();
+        var dbContextFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<ErpDbContext>>();
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync();
+        await dbContext.Database.MigrateAsync();
+
+        var seeder = scope.ServiceProvider.GetRequiredService<IDataSeeder>();
+        await seeder.SeedAsync();
     }
 }

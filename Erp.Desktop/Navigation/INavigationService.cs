@@ -1,7 +1,9 @@
-﻿namespace Erp.Desktop.Navigation;
+﻿using System.ComponentModel;
 
-public interface INavigationService
+namespace Erp.Desktop.Navigation;
+
+public interface INavigationService : INotifyPropertyChanged
 {
     object? CurrentViewModel { get; }
-    void NavigateTo<TViewModel>() where TViewModel : class;
+    bool NavigateTo<TViewModel>() where TViewModel : class;
 }

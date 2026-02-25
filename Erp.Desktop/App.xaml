@@ -3,12 +3,30 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:views="clr-namespace:Erp.Desktop.Views"
              xmlns:vms="clr-namespace:Erp.Desktop.ViewModels">
-    <!-- NOTE: Startup URI intentionally omitted; App.xaml.cs controls startup via Host/DI -->
     <Application.Resources>
         <ResourceDictionary>
-            <!-- ViewModel -> View mapping -->
+            <DataTemplate DataType="{x:Type vms:LoginViewModel}">
+                <views:LoginView />
+            </DataTemplate>
+
             <DataTemplate DataType="{x:Type vms:HomeViewModel}">
                 <views:HomeView />
+            </DataTemplate>
+
+            <DataTemplate DataType="{x:Type vms:UsersManagementViewModel}">
+                <views:UsersManagementView />
+            </DataTemplate>
+
+            <DataTemplate DataType="{x:Type vms:SettingsViewModel}">
+                <views:SettingsView />
+            </DataTemplate>
+
+            <DataTemplate DataType="{x:Type vms:ChangePasswordViewModel}">
+                <views:ChangePasswordView />
+            </DataTemplate>
+
+            <DataTemplate DataType="{x:Type vms:PlaceholderPageViewModel}">
+                <views:PlaceholderView />
             </DataTemplate>
         </ResourceDictionary>
     </Application.Resources>
