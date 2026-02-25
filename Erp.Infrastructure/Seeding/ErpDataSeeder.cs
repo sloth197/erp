@@ -3,6 +3,7 @@ using Erp.Application.Interfaces;
 using Erp.Domain.Entities;
 using Erp.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace Erp.Infrastructure.Seeding;
 
@@ -10,11 +11,16 @@ public sealed class ErpDataSeeder : IDataSeeder
 {
     private readonly IDbContextFactory<ErpDbContext> _dbContextFactory;
     private readonly IPasswordHasher _passwordHasher;
+    private readonly IConfiguration _configuration;
 
-    public ErpDataSeeder(IDbContextFactory<ErpDbContext> dbContextFactory, IPasswordHasher passwordHasher)
+    public ErpDataSeeder(
+        IDbContextFactory<ErpDbContext> dbContextFactory,
+        IPasswordHasher passwordHasher,
+        IConfiguration configuration)
     {
         _dbContextFactory = dbContextFactory;
         _passwordHasher = passwordHasher;
+        _configuration = configuration;
     }
 
     public async Task SeedAsync(CancellationToken cancellationToken = default)
@@ -48,8 +54,13 @@ public sealed class ErpDataSeeder : IDataSeeder
             staffPermissions.Select(code => permissionMap[code]),
             cancellationToken);
 
-        await EnsureUserAsync(db, "admin", "${ERP_SEED_ADMIN_PASSWORD}", adminRole, cancellationToken);
-        await EnsureUserAsync(db, "staff", "${ERP_SEED_STAFF_PASSWORD}", staffRole, cancellationToken);
+        var adminUsername = _configuration["Seed:AdminUsername"] ?? "admin";
+        var staffUsername = _configuration["Seed:StaffUsername"] ?? "staff";
+        var adminPassword = ResolveSeedSecret("Seed:AdminPassword", "ERP_SEED_ADMIN_PASSWORD");
+        var staffPassword = ResolveSeedSecret("Seed:StaffPassword", "ERP_SEED_STAFF_PASSWORD");
+
+        await EnsureUserAsync(db, adminUsername, adminPassword, adminRole, cancellationToken);
+        await EnsureUserAsync(db, staffUsername, staffPassword, staffRole, cancellationToken);
 
         await db.SaveChangesAsync(cancellationToken);
     }
@@ -104,13 +115,18 @@ public sealed class ErpDataSeeder : IDataSeeder
     private async Task EnsureUserAsync(
         ErpDbContext db,
         string username,
-        string initialPassword,
+        string? initialPassword,
         Role role,
         CancellationToken cancellationToken)
     {
         var user = await db.Users.FirstOrDefaultAsync(x => x.Username == username, cancellationToken);
         if (user is null)
         {
+            if (string.IsNullOrWhiteSpace(initialPassword))
+            {
+                return;
+            }
+
             user = new User(username, _passwordHasher.Hash(initialPassword));
             db.Users.Add(user);
             await db.SaveChangesAsync(cancellationToken);
@@ -124,5 +140,22 @@ public sealed class ErpDataSeeder : IDataSeeder
         {
             db.UserRoles.Add(new UserRole(user.Id, role.Id));
         }
+    }
+
+    private string? ResolveSeedSecret(string configKey, string envName)
+    {
+        var raw = _configuration[configKey];
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return Environment.GetEnvironmentVariable(envName);
+        }
+
+        var trimmed = raw.Trim();
+        if (string.Equals(trimmed, $"${{{envName}}}", StringComparison.Ordinal))
+        {
+            return Environment.GetEnvironmentVariable(envName);
+        }
+
+        return trimmed;
     }
 }

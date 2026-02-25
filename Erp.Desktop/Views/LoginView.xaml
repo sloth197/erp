@@ -40,10 +40,11 @@
                         Margin="0,16,0,0"
                         Height="36" />
 
-                <TextBlock Text="기본 관리자: admin / ${ERP_SEED_ADMIN_PASSWORD}"
+                <TextBlock Text="관리자/스태프 계정은 보안 시드 설정에서 구성하세요."
                            Margin="0,14,0,0"
                            Foreground="#667085"
-                           FontSize="12" />
+                           FontSize="12"
+                           TextWrapping="Wrap" />
             </StackPanel>
         </Border>
     </Grid>

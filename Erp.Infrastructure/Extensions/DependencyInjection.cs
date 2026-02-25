@@ -13,11 +13,11 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration config)
     {
-        var connectionString = config.GetConnectionString("ErpDb");
-        if (string.IsNullOrWhiteSpace(connectionString))
+        var connectionString = ResolveConfigPlaceholders(config.GetConnectionString("ErpDb"));
+        if (string.IsNullOrWhiteSpace(connectionString) || connectionString.Contains("${", StringComparison.Ordinal))
         {
             throw new InvalidOperationException(
-                "Connection string 'ErpDb' was not found. Configure ConnectionStrings:ErpDb.");
+                "ConnectionStrings:ErpDb is missing or unresolved. Set ERP_DB_NAME, ERP_DB_USER, and ERP_DB_PASSWORD.");
         }
 
         services.AddDbContextFactory<ErpDbContext>(options => options.UseNpgsql(connectionString));
@@ -35,5 +35,24 @@ public static class DependencyInjection
         services.AddSingleton<IDataSeeder, ErpDataSeeder>();
 
         return services;
+    }
+
+    private static string? ResolveConfigPlaceholders(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return value;
+        }
+
+        return ReplacePlaceholder(value, "ERP_DB_NAME")
+            .Replace("${ERP_DB_USER}", Environment.GetEnvironmentVariable("ERP_DB_USER"), StringComparison.Ordinal)
+            .Replace("${ERP_DB_PASSWORD}", Environment.GetEnvironmentVariable("ERP_DB_PASSWORD"), StringComparison.Ordinal)
+            .Trim();
+    }
+
+    private static string ReplacePlaceholder(string source, string envName)
+    {
+        var envValue = Environment.GetEnvironmentVariable(envName);
+        return source.Replace($"${{{envName}}}", envValue, StringComparison.Ordinal);
     }
 }

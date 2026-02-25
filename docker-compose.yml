@@ -3,8 +3,8 @@
     image: postgres:16
     container_name: erp-postgres
     environment:
-      POSTGRES_DB: erp
-      POSTGRES_USER: erp
+      POSTGRES_DB: ${ERP_DB_NAME:-erp}
+      POSTGRES_USER: ${ERP_DB_USER:-erp}
       POSTGRES_PASSWORD: ${ERP_DB_PASSWORD:?Set ERP_DB_PASSWORD in .env}
     ports:
       - "5432:5432"
