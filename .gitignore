@@ -18,6 +18,16 @@ obj/
 .env.*
 !.env.example
 
+# Local-only security implementation (kept in VSCode, excluded from GitHub)
+Erp.Infrastructure/Services/AuthService.cs
+Erp.Infrastructure/Services/UserService.cs
+Erp.Infrastructure/Security/Pbkdf2PasswordHasher.cs
+Erp.Infrastructure/Security/CurrentUserContext.cs
+Erp.Infrastructure/Security/AccessControlService.cs
+Erp.Desktop/ViewModels/LoginViewModel.cs
+Erp.Desktop/ViewModels/ChangePasswordViewModel.cs
+Erp.Desktop/ViewModels/UsersManagementViewModel.cs
+
 # OS
 .DS_Store
 Thumbs.db
