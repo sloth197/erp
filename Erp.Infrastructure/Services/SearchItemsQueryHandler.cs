@@ -101,6 +101,7 @@ public sealed class SearchItemsQueryHandler : IItemQueryService
                 x.UnitOfMeasure.Name,
                 x.TrackingType,
                 x.IsActive,
+                x.RowVersion,
                 x.CreatedAtUtc,
                 x.UpdatedAtUtc))
             .ToListAsync(cancellationToken);

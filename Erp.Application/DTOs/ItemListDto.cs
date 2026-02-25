@@ -15,5 +15,6 @@ public sealed record ItemListDto(
     string UnitOfMeasureName,
     TrackingType TrackingType,
     bool IsActive,
+    byte[] RowVersion,
     DateTime CreatedAtUtc,
     DateTime UpdatedAtUtc);

@@ -16,7 +16,13 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <TextBlock Text="Items" FontSize="22" FontWeight="SemiBold" />
+        <DockPanel>
+            <TextBlock DockPanel.Dock="Left" Text="Items" FontSize="22" FontWeight="SemiBold" />
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Margin="0,0,14,0" Foreground="#667085" Text="{Binding CanRead, StringFormat=Read: {0}}" />
+                <TextBlock Foreground="#667085" Text="{Binding CanWrite, StringFormat=Write: {0}}" />
+            </StackPanel>
+        </DockPanel>
 
         <Border Grid.Row="1"
                 Margin="0,12,0,12"
@@ -132,33 +138,60 @@
                 BorderThickness="1"
                 CornerRadius="6">
             <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="2*" />
-                    <ColumnDefinition Width="2*" />
-                    <ColumnDefinition Width="2*" />
-                    <ColumnDefinition Width="2*" />
-                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
 
-                <StackPanel>
-                    <TextBlock Text="Selected Code" FontWeight="SemiBold" />
-                    <TextBlock Text="{Binding SelectedItem.ItemCode}" />
-                </StackPanel>
+                <DockPanel Grid.Row="0" Margin="0,0,0,10">
+                    <TextBlock DockPanel.Dock="Left" VerticalAlignment="Center" Text="Item Detail" FontWeight="SemiBold" />
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Button Content="Add"
+                                Width="72"
+                                Margin="0,0,8,0"
+                                Command="{Binding AddItemCommand}"
+                                IsEnabled="{Binding CanWrite}" />
+                        <Button Content="Save"
+                                Width="72"
+                                Margin="0,0,8,0"
+                                Command="{Binding SaveItemCommand}"
+                                IsEnabled="{Binding CanWrite}" />
+                        <Button Content="{Binding ActiveToggleButtonText}"
+                                Width="96"
+                                Command="{Binding ToggleActiveCommand}"
+                                IsEnabled="{Binding CanWrite}" />
+                    </StackPanel>
+                </DockPanel>
 
-                <StackPanel Grid.Column="1">
-                    <TextBlock Text="Name" FontWeight="SemiBold" />
-                    <TextBlock Text="{Binding SelectedItem.Name}" />
-                </StackPanel>
+                <Grid Grid.Row="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*" />
+                        <ColumnDefinition Width="2*" />
+                        <ColumnDefinition Width="2*" />
+                        <ColumnDefinition Width="2*" />
+                    </Grid.ColumnDefinitions>
 
-                <StackPanel Grid.Column="2">
-                    <TextBlock Text="Category" FontWeight="SemiBold" />
-                    <TextBlock Text="{Binding SelectedItem.CategoryDisplay}" />
-                </StackPanel>
+                    <StackPanel>
+                        <TextBlock Text="Selected Code" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding SelectedItem.ItemCode}" />
+                    </StackPanel>
 
-                <StackPanel Grid.Column="3">
-                    <TextBlock Text="Tracking / Unit" FontWeight="SemiBold" />
-                    <TextBlock Text="{Binding SelectedItem.TrackingType}" />
-                    <TextBlock Text="{Binding SelectedItem.UnitOfMeasureCode}" />
-                </StackPanel>
+                    <StackPanel Grid.Column="1">
+                        <TextBlock Text="Name" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding SelectedItem.Name}" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="Category" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding SelectedItem.CategoryDisplay}" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="3">
+                        <TextBlock Text="Tracking / Unit" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding SelectedItem.TrackingTypeDisplay}" />
+                        <TextBlock Text="{Binding SelectedItem.UnitOfMeasureCode}" />
+                    </StackPanel>
+                </Grid>
             </Grid>
         </Border>
 
@@ -173,7 +206,7 @@
         </Border>
 
         <TextBlock Grid.Row="3"
-                   Margin="0,88,0,0"
+                   Margin="0,120,0,0"
                    Foreground="#B00020"
                    Text="{Binding StatusMessage}"
                    TextWrapping="Wrap" />

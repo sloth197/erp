@@ -2,8 +2,10 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Erp.Application.Authorization;
+using Erp.Application.Commands;
 using Erp.Application.Interfaces;
 using Erp.Application.Queries;
+using Erp.Domain.Entities;
 using Erp.Desktop.Navigation;
 
 namespace Erp.Desktop.ViewModels;
@@ -12,6 +14,7 @@ namespace Erp.Desktop.ViewModels;
 public sealed partial class ItemsViewModel : ObservableObject
 {
     private readonly IItemQueryService _itemQueryService;
+    private readonly IItemCommandService _itemCommandService;
     private bool _categoriesLoaded;
 
     [ObservableProperty]
@@ -27,12 +30,17 @@ public sealed partial class ItemsViewModel : ObservableObject
     private ObservableCollection<ItemRow> items = new();
 
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(SaveItemCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ToggleActiveCommand))]
     private ItemRow? selectedItem;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(LoadCommand))]
     [NotifyCanExecuteChangedFor(nameof(PreviousPageCommand))]
     [NotifyCanExecuteChangedFor(nameof(NextPageCommand))]
+    [NotifyCanExecuteChangedFor(nameof(AddItemCommand))]
+    [NotifyCanExecuteChangedFor(nameof(SaveItemCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ToggleActiveCommand))]
     private bool isBusy;
 
     [ObservableProperty]
@@ -53,10 +61,20 @@ public sealed partial class ItemsViewModel : ObservableObject
     public ObservableCollection<int> PageSizes { get; } = new([20, 50, 100, 200]);
 
     public int TotalPages => PageSize <= 0 ? 0 : (int)Math.Ceiling(TotalCount / (double)PageSize);
+    public bool CanRead { get; }
+    public bool CanWrite { get; }
+    public string ActiveToggleButtonText => SelectedItem?.IsActive == true ? "Deactivate" : "Activate";
 
-    public ItemsViewModel(IItemQueryService itemQueryService)
+    public ItemsViewModel(
+        IItemQueryService itemQueryService,
+        IItemCommandService itemCommandService,
+        ICurrentUserContext currentUserContext)
     {
         _itemQueryService = itemQueryService;
+        _itemCommandService = itemCommandService;
+
+        CanRead = currentUserContext.HasPermission(PermissionCodes.MasterItemsRead);
+        CanWrite = currentUserContext.HasPermission(PermissionCodes.MasterItemsWrite);
 
         Categories = new ObservableCollection<ItemCategoryFilterOption>
         {
@@ -76,19 +94,39 @@ public sealed partial class ItemsViewModel : ObservableObject
         _ = LoadAsync();
     }
 
+    partial void OnSelectedItemChanged(ItemRow? value)
+    {
+        OnPropertyChanged(nameof(ActiveToggleButtonText));
+    }
+
     private bool CanLoad()
     {
-        return !IsBusy;
+        return !IsBusy && CanRead;
     }
 
     private bool CanGoPreviousPage()
     {
-        return !IsBusy && Page > 1;
+        return !IsBusy && CanRead && Page > 1;
     }
 
     private bool CanGoNextPage()
     {
-        return !IsBusy && Page < TotalPages;
+        return !IsBusy && CanRead && Page < TotalPages;
+    }
+
+    private bool CanAddItem()
+    {
+        return !IsBusy && CanWrite;
+    }
+
+    private bool CanSaveItem()
+    {
+        return !IsBusy && CanWrite && SelectedItem is not null;
+    }
+
+    private bool CanToggleActive()
+    {
+        return !IsBusy && CanWrite && SelectedItem is not null;
     }
 
     [RelayCommand(CanExecute = nameof(CanLoad))]
@@ -125,6 +163,91 @@ public sealed partial class ItemsViewModel : ObservableObject
 
         Page++;
         await LoadInternalAsync(resetPage: false);
+    }
+
+    [RelayCommand(CanExecute = nameof(CanAddItem))]
+    private void AddItem()
+    {
+        StatusMessage = "Add flow will be completed in the next step.";
+    }
+
+    [RelayCommand(CanExecute = nameof(CanSaveItem))]
+    private async Task SaveItemAsync()
+    {
+        if (SelectedItem is null)
+        {
+            return;
+        }
+
+        try
+        {
+            IsBusy = true;
+            StatusMessage = null;
+
+            await _itemCommandService.UpdateItemAsync(new UpdateItemCommand
+            {
+                ItemId = SelectedItem.Id,
+                RowVersion = SelectedItem.RowVersion.ToArray(),
+                ItemCode = SelectedItem.ItemCode,
+                Barcode = SelectedItem.Barcode,
+                Name = SelectedItem.Name,
+                CategoryId = SelectedItem.CategoryId,
+                UnitOfMeasureId = SelectedItem.UnitOfMeasureId,
+                TrackingType = SelectedItem.TrackingType
+            });
+
+            await LoadInternalAsync(resetPage: false);
+            StatusMessage = "Item saved.";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = ex.Message;
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(CanToggleActive))]
+    private async Task ToggleActiveAsync()
+    {
+        if (SelectedItem is null)
+        {
+            return;
+        }
+
+        try
+        {
+            IsBusy = true;
+            StatusMessage = null;
+
+            if (SelectedItem.IsActive)
+            {
+                await _itemCommandService.DeactivateItemAsync(new DeactivateItemCommand
+                {
+                    ItemId = SelectedItem.Id
+                });
+            }
+            else
+            {
+                await _itemCommandService.ActivateItemAsync(new ActivateItemCommand
+                {
+                    ItemId = SelectedItem.Id
+                });
+            }
+
+            await LoadInternalAsync(resetPage: false);
+            StatusMessage = "Item status updated.";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = ex.Message;
+        }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 
     [RelayCommand]
@@ -166,6 +289,14 @@ public sealed partial class ItemsViewModel : ObservableObject
 
     private async Task LoadInternalAsync(bool resetPage)
     {
+        if (!CanRead)
+        {
+            Items = new ObservableCollection<ItemRow>();
+            TotalCount = 0;
+            StatusMessage = "Read permission is required.";
+            return;
+        }
+
         try
         {
             IsBusy = true;
@@ -235,12 +366,15 @@ public sealed partial class ItemsViewModel : ObservableObject
             dto.Id,
             dto.ItemCode,
             dto.Name,
+            dto.CategoryId,
             $"{dto.CategoryCode} - {dto.CategoryName}",
             dto.IsActive,
-            dto.TrackingType.ToString(),
+            dto.TrackingType,
+            dto.UnitOfMeasureId,
             dto.UnitOfMeasureCode,
             dto.Barcode,
             0m,
+            dto.RowVersion.ToArray(),
             dto.CreatedAtUtc,
             dto.UpdatedAtUtc);
     }
@@ -249,14 +383,20 @@ public sealed partial class ItemsViewModel : ObservableObject
         Guid Id,
         string ItemCode,
         string Name,
+        Guid CategoryId,
         string CategoryDisplay,
         bool IsActive,
-        string TrackingType,
+        TrackingType TrackingType,
+        Guid UnitOfMeasureId,
         string UnitOfMeasureCode,
         string? Barcode,
         decimal Price,
+        byte[] RowVersion,
         DateTime CreatedAtUtc,
-        DateTime UpdatedAtUtc);
+        DateTime UpdatedAtUtc)
+    {
+        public string TrackingTypeDisplay => TrackingType.ToString();
+    }
 
     public sealed record ItemCategoryFilterOption(Guid? Id, string DisplayName)
     {

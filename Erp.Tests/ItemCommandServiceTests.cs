@@ -56,6 +56,25 @@ public sealed class ItemCommandServiceTests
     }
 
     [Fact]
+    public async Task CreateItemAsync_ThrowsForbidden_WhenWritePermissionIsDenied()
+    {
+        var (factory, fixture) = await BuildFixtureAsync();
+        var service = new ItemCommandService(factory, new DenyAccessControl(), new FakeCurrentUserContext());
+
+        var command = new CreateItemCommand
+        {
+            ItemCode = "ITEM-NEW",
+            Barcode = "BC-NEW",
+            Name = "Denied Item",
+            CategoryId = fixture.CategoryId,
+            UnitOfMeasureId = fixture.UnitOfMeasureId,
+            TrackingType = TrackingType.None
+        };
+
+        await Assert.ThrowsAsync<ForbiddenException>(() => service.CreateItemAsync(command));
+    }
+
+    [Fact]
     public async Task UpdateItemAsync_ThrowsConcurrencyException_WhenSecondSessionUsesStaleRowVersion()
     {
         var (factory, fixture) = await BuildFixtureAsync();
@@ -204,6 +223,18 @@ public sealed class ItemCommandServiceTests
         public void DemandPermission(string permissionCode)
         {
             LastDemandedPermissionCode = permissionCode;
+        }
+    }
+
+    private sealed class DenyAccessControl : IAccessControl
+    {
+        public void DemandAuthenticated()
+        {
+        }
+
+        public void DemandPermission(string permissionCode)
+        {
+            throw new ForbiddenException($"Permission '{permissionCode}' is required.");
         }
     }
 
