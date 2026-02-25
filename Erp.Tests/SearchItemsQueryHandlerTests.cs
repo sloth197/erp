@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Diagnostics;
 using Erp.Application.Authorization;
 using Erp.Application.Exceptions;
 using Erp.Application.Interfaces;
@@ -72,6 +73,55 @@ public sealed class SearchItemsQueryHandlerTests
         var handler = new SearchItemsQueryHandler(dbContextFactory, accessControl);
 
         await Assert.ThrowsAsync<ForbiddenException>(() => handler.SearchItemsAsync(new SearchItemsQuery()));
+    }
+
+    [Fact]
+    public async Task SearchItemsAsync_HandlesThousandRowsWithPaging()
+    {
+        var options = new DbContextOptionsBuilder<ErpDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using (var db = new ErpDbContext(options))
+        {
+            var category = new ItemCategory("BULK", "Bulk");
+            var uom = new UnitOfMeasure("EA", "Each");
+            db.ItemCategories.Add(category);
+            db.UnitOfMeasures.Add(uom);
+
+            for (var i = 1; i <= 1000; i++)
+            {
+                db.Items.Add(new Item(
+                    $"ITM-{i:0000}",
+                    $"Bulk Item {i:0000}",
+                    category.Id,
+                    uom.Id,
+                    TrackingType.None,
+                    $"BC-{i:0000}"));
+            }
+
+            await db.SaveChangesAsync();
+        }
+
+        var accessControl = new RecordingAccessControl();
+        var handler = new SearchItemsQueryHandler(new TestDbContextFactory(options), accessControl);
+        var stopwatch = Stopwatch.StartNew();
+
+        var result = await handler.SearchItemsAsync(new SearchItemsQuery
+        {
+            Page = 5,
+            PageSize = 100,
+            SortBy = "itemCode",
+            SortDirection = "asc"
+        });
+
+        stopwatch.Stop();
+
+        Assert.Equal(1000, result.TotalCount);
+        Assert.Equal(100, result.Items.Count);
+        Assert.Equal("ITM-0401", result.Items[0].ItemCode);
+        Assert.Equal(PermissionCodes.MasterItemsRead, accessControl.LastDemandedPermissionCode);
+        Assert.True(stopwatch.ElapsedMilliseconds < 5000);
     }
 
     private static async Task<(TestDbContextFactory DbContextFactory, SeedFixture Fixture)> BuildFixtureAsync()

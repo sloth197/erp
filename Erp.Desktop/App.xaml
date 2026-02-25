@@ -25,6 +25,10 @@
                 <views:ChangePasswordView />
             </DataTemplate>
 
+            <DataTemplate DataType="{x:Type vms:ItemsViewModel}">
+                <views:ItemsView />
+            </DataTemplate>
+
             <DataTemplate DataType="{x:Type vms:PlaceholderPageViewModel}">
                 <views:PlaceholderView />
             </DataTemplate>

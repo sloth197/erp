@@ -23,6 +23,19 @@ public sealed class SearchItemsQueryHandler : IItemQueryService
         _accessControl = accessControl;
     }
 
+    public async Task<IReadOnlyList<ItemCategoryOptionDto>> GetItemCategoryOptionsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        _accessControl.DemandPermission(PermissionCodes.MasterItemsRead);
+
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        return await db.ItemCategories
+            .AsNoTracking()
+            .OrderBy(x => x.Name)
+            .Select(x => new ItemCategoryOptionDto(x.Id, x.CategoryCode, x.Name))
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<PagedResult<ItemListDto>> SearchItemsAsync(
         SearchItemsQuery query,
         CancellationToken cancellationToken = default)

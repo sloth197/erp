@@ -35,14 +35,6 @@ public sealed class PartnersViewModel : PlaceholderPageViewModel
 }
 
 [RequiredPermission(PermissionCodes.MasterItemsRead)]
-public sealed class ItemsViewModel : PlaceholderPageViewModel
-{
-    public ItemsViewModel() : base("품목 관리", "품목 마스터 관리 화면(placeholder)")
-    {
-    }
-}
-
-[RequiredPermission(PermissionCodes.MasterItemsRead)]
 public sealed class WarehousesViewModel : PlaceholderPageViewModel
 {
     public WarehousesViewModel() : base("창고/로케이션", "창고/로케이션 관리 화면(placeholder)")
