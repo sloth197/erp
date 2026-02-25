@@ -1,4 +1,6 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
+using System.IO;
+using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Erp.Application.Authorization;
@@ -7,6 +9,7 @@ using Erp.Application.Interfaces;
 using Erp.Application.Queries;
 using Erp.Domain.Entities;
 using Erp.Desktop.Navigation;
+using Erp.Desktop.Services;
 
 namespace Erp.Desktop.ViewModels;
 
@@ -15,6 +18,8 @@ public sealed partial class ItemsViewModel : ObservableObject
 {
     private readonly IItemQueryService _itemQueryService;
     private readonly IItemCommandService _itemCommandService;
+    private readonly IFileSaveDialogService _fileSaveDialogService;
+    private readonly IItemCsvExportService _itemCsvExportService;
     private bool _categoriesLoaded;
 
     [ObservableProperty]
@@ -41,6 +46,7 @@ public sealed partial class ItemsViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(AddItemCommand))]
     [NotifyCanExecuteChangedFor(nameof(SaveItemCommand))]
     [NotifyCanExecuteChangedFor(nameof(ToggleActiveCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ExportCsvCommand))]
     private bool isBusy;
 
     [ObservableProperty]
@@ -63,18 +69,24 @@ public sealed partial class ItemsViewModel : ObservableObject
     public int TotalPages => PageSize <= 0 ? 0 : (int)Math.Ceiling(TotalCount / (double)PageSize);
     public bool CanRead { get; }
     public bool CanWrite { get; }
+    public bool CanExport { get; }
     public string ActiveToggleButtonText => SelectedItem?.IsActive == true ? "Deactivate" : "Activate";
 
     public ItemsViewModel(
         IItemQueryService itemQueryService,
         IItemCommandService itemCommandService,
+        IFileSaveDialogService fileSaveDialogService,
+        IItemCsvExportService itemCsvExportService,
         ICurrentUserContext currentUserContext)
     {
         _itemQueryService = itemQueryService;
         _itemCommandService = itemCommandService;
+        _fileSaveDialogService = fileSaveDialogService;
+        _itemCsvExportService = itemCsvExportService;
 
         CanRead = currentUserContext.HasPermission(PermissionCodes.MasterItemsRead);
         CanWrite = currentUserContext.HasPermission(PermissionCodes.MasterItemsWrite);
+        CanExport = CanWrite || currentUserContext.HasPermission(PermissionCodes.MasterItemsExport);
 
         Categories = new ObservableCollection<ItemCategoryFilterOption>
         {
@@ -127,6 +139,11 @@ public sealed partial class ItemsViewModel : ObservableObject
     private bool CanToggleActive()
     {
         return !IsBusy && CanWrite && SelectedItem is not null;
+    }
+
+    private bool CanExportItems()
+    {
+        return !IsBusy && CanRead && CanExport;
     }
 
     [RelayCommand(CanExecute = nameof(CanLoad))]
@@ -239,6 +256,64 @@ public sealed partial class ItemsViewModel : ObservableObject
 
             await LoadInternalAsync(resetPage: false);
             StatusMessage = "Item status updated.";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = ex.Message;
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(CanExportItems))]
+    private async Task ExportCsvAsync()
+    {
+        if (!CanRead)
+        {
+            StatusMessage = "Read permission is required.";
+            return;
+        }
+
+        if (!CanExport)
+        {
+            StatusMessage = "Export permission is required.";
+            return;
+        }
+
+        try
+        {
+            IsBusy = true;
+            StatusMessage = null;
+
+            var exportQuery = new ExportItemsQuery
+            {
+                Keyword = SearchCriteria.Keyword,
+                CategoryId = SearchCriteria.SelectedCategory?.Id,
+                IsActive = SearchCriteria.Active?.IsActive,
+                SortBy = "itemCode",
+                SortDirection = "asc"
+            };
+
+            var rows = await _itemQueryService.ExportItemsAsync(exportQuery);
+            if (rows.Count == 0)
+            {
+                StatusMessage = "No rows matched the current filter.";
+                return;
+            }
+
+            var filePath = _fileSaveDialogService.ShowCsvSaveDialog($"items_{DateTime.Now:yyyyMMdd_HHmmss}.csv");
+            if (string.IsNullOrWhiteSpace(filePath))
+            {
+                StatusMessage = "CSV export cancelled.";
+                return;
+            }
+
+            var csvContent = _itemCsvExportService.BuildCsv(rows);
+            await File.WriteAllTextAsync(filePath, csvContent, new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
+
+            StatusMessage = $"CSV exported: {rows.Count:N0} rows.";
         }
         catch (Exception ex)
         {

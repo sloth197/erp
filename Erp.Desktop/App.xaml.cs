@@ -30,6 +30,8 @@ public partial class App : System.Windows.Application
                 services.AddInfrastructure(context.Configuration);
 
                 services.AddSingleton<IUserMessageService, UserMessageService>();
+                services.AddSingleton<IFileSaveDialogService, FileSaveDialogService>();
+                services.AddSingleton<IItemCsvExportService, ItemCsvExportService>();
 
                 services.AddSingleton<Navigation.INavigationService, Navigation.NavigationService>();
 

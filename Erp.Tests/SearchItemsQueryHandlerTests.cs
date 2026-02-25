@@ -18,7 +18,10 @@ public sealed class SearchItemsQueryHandlerTests
     {
         var (dbContextFactory, fixture) = await BuildFixtureAsync();
         var accessControl = new RecordingAccessControl();
-        var handler = new SearchItemsQueryHandler(dbContextFactory, accessControl);
+        var handler = new SearchItemsQueryHandler(
+            dbContextFactory,
+            accessControl,
+            new FakeCurrentUserContext(PermissionCodes.MasterItemsRead));
 
         var query = new SearchItemsQuery
         {
@@ -43,7 +46,10 @@ public sealed class SearchItemsQueryHandlerTests
     {
         var (dbContextFactory, _) = await BuildFixtureAsync();
         var accessControl = new RecordingAccessControl();
-        var handler = new SearchItemsQueryHandler(dbContextFactory, accessControl);
+        var handler = new SearchItemsQueryHandler(
+            dbContextFactory,
+            accessControl,
+            new FakeCurrentUserContext(PermissionCodes.MasterItemsRead));
 
         var query = new SearchItemsQuery
         {
@@ -70,7 +76,10 @@ public sealed class SearchItemsQueryHandlerTests
     {
         var (dbContextFactory, _) = await BuildFixtureAsync();
         var accessControl = new RecordingAccessControl { ThrowForbidden = true };
-        var handler = new SearchItemsQueryHandler(dbContextFactory, accessControl);
+        var handler = new SearchItemsQueryHandler(
+            dbContextFactory,
+            accessControl,
+            new FakeCurrentUserContext(PermissionCodes.MasterItemsRead));
 
         await Assert.ThrowsAsync<ForbiddenException>(() => handler.SearchItemsAsync(new SearchItemsQuery()));
     }
@@ -104,7 +113,10 @@ public sealed class SearchItemsQueryHandlerTests
         }
 
         var accessControl = new RecordingAccessControl();
-        var handler = new SearchItemsQueryHandler(new TestDbContextFactory(options), accessControl);
+        var handler = new SearchItemsQueryHandler(
+            new TestDbContextFactory(options),
+            accessControl,
+            new FakeCurrentUserContext(PermissionCodes.MasterItemsRead));
         var stopwatch = Stopwatch.StartNew();
 
         var result = await handler.SearchItemsAsync(new SearchItemsQuery
@@ -122,6 +134,63 @@ public sealed class SearchItemsQueryHandlerTests
         Assert.Equal("ITM-0401", result.Items[0].ItemCode);
         Assert.Equal(PermissionCodes.MasterItemsRead, accessControl.LastDemandedPermissionCode);
         Assert.True(stopwatch.ElapsedMilliseconds < 5000);
+    }
+
+    [Fact]
+    public async Task ExportItemsAsync_UsesFilterAndReturnsMatchingRows()
+    {
+        var (dbContextFactory, fixture) = await BuildFixtureAsync();
+        var accessControl = new RecordingAccessControl();
+        var handler = new SearchItemsQueryHandler(
+            dbContextFactory,
+            accessControl,
+            new FakeCurrentUserContext(PermissionCodes.MasterItemsRead, PermissionCodes.MasterItemsExport));
+
+        var result = await handler.ExportItemsAsync(new ExportItemsQuery
+        {
+            CategoryId = fixture.ElectronicsCategoryId,
+            IsActive = true,
+            SortBy = "itemCode",
+            SortDirection = "asc"
+        });
+
+        Assert.Equal(2, result.Count);
+        Assert.Equal("A-100", result[0].ItemCode);
+        Assert.Equal("B-100", result[1].ItemCode);
+    }
+
+    [Fact]
+    public async Task ExportItemsAsync_AllowsWritePermission_WithoutExportPermission()
+    {
+        var (dbContextFactory, _) = await BuildFixtureAsync();
+        var accessControl = new RecordingAccessControl();
+        var handler = new SearchItemsQueryHandler(
+            dbContextFactory,
+            accessControl,
+            new FakeCurrentUserContext(PermissionCodes.MasterItemsRead, PermissionCodes.MasterItemsWrite));
+
+        var result = await handler.ExportItemsAsync(new ExportItemsQuery
+        {
+            SortBy = "itemCode",
+            SortDirection = "asc"
+        });
+
+        Assert.Equal(3, result.Count);
+        Assert.Null(accessControl.LastDemandedPermissionCode);
+    }
+
+    [Fact]
+    public async Task ExportItemsAsync_ThrowsForbidden_WhenMissingExportAndWritePermission()
+    {
+        var (dbContextFactory, _) = await BuildFixtureAsync();
+        var accessControl = new RecordingAccessControl { ThrowForbidden = true };
+        var handler = new SearchItemsQueryHandler(
+            dbContextFactory,
+            accessControl,
+            new FakeCurrentUserContext(PermissionCodes.MasterItemsRead));
+
+        await Assert.ThrowsAsync<ForbiddenException>(() => handler.ExportItemsAsync(new ExportItemsQuery()));
+        Assert.Equal(PermissionCodes.MasterItemsExport, accessControl.LastDemandedPermissionCode);
     }
 
     private static async Task<(TestDbContextFactory DbContextFactory, SeedFixture Fixture)> BuildFixtureAsync()
@@ -212,6 +281,32 @@ public sealed class SearchItemsQueryHandlerTests
             {
                 throw new ForbiddenException("Permission denied.");
             }
+        }
+    }
+
+    private sealed class FakeCurrentUserContext : ICurrentUserContext
+    {
+        private readonly HashSet<string> _permissions;
+
+        public FakeCurrentUserContext(params string[] permissions)
+        {
+            _permissions = new HashSet<string>(permissions, StringComparer.OrdinalIgnoreCase);
+        }
+
+        public Guid? CurrentUserId { get; } = Guid.NewGuid();
+        public string? Username { get; } = "tester";
+        public bool IsAuthenticated => true;
+        public IReadOnlyCollection<string> PermissionCodes => _permissions;
+
+        public event EventHandler? Changed
+        {
+            add { }
+            remove { }
+        }
+
+        public bool HasPermission(string permissionCode)
+        {
+            return _permissions.Contains(permissionCode);
         }
     }
 }

@@ -16,11 +16,16 @@ public sealed class SearchItemsQueryHandler : IItemQueryService
 
     private readonly IDbContextFactory<ErpDbContext> _dbContextFactory;
     private readonly IAccessControl _accessControl;
+    private readonly ICurrentUserContext _currentUserContext;
 
-    public SearchItemsQueryHandler(IDbContextFactory<ErpDbContext> dbContextFactory, IAccessControl accessControl)
+    public SearchItemsQueryHandler(
+        IDbContextFactory<ErpDbContext> dbContextFactory,
+        IAccessControl accessControl,
+        ICurrentUserContext currentUserContext)
     {
         _dbContextFactory = dbContextFactory;
         _accessControl = accessControl;
+        _currentUserContext = currentUserContext;
     }
 
     public async Task<IReadOnlyList<ItemCategoryOptionDto>> GetItemCategoryOptionsAsync(
@@ -45,68 +50,118 @@ public sealed class SearchItemsQueryHandler : IItemQueryService
         query ??= new SearchItemsQuery();
         var page = query.Page < 1 ? DefaultPage : query.Page;
         var pageSize = query.PageSize < 1 ? DefaultPageSize : Math.Min(query.PageSize, MaxPageSize);
-        var keyword = query.Keyword?.Trim();
 
         await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-
-        IQueryable<Item> items = db.Items
-            .AsNoTracking()
-            .Include(x => x.Category)
-            .Include(x => x.UnitOfMeasure);
-
-        if (!string.IsNullOrWhiteSpace(keyword))
-        {
-            items = items.Where(x =>
-                x.ItemCode.Contains(keyword) ||
-                x.Name.Contains(keyword) ||
-                (x.Barcode != null && x.Barcode.Contains(keyword)));
-        }
-
-        if (query.CategoryId.HasValue)
-        {
-            var categoryId = query.CategoryId.Value;
-            items = items.Where(x => x.CategoryId == categoryId);
-        }
-
-        if (query.IsActive.HasValue)
-        {
-            var isActive = query.IsActive.Value;
-            items = items.Where(x => x.IsActive == isActive);
-        }
-
-        if (query.TrackingType.HasValue)
-        {
-            var trackingType = query.TrackingType.Value;
-            items = items.Where(x => x.TrackingType == trackingType);
-        }
+        var items = BuildFilteredItemsQuery(
+            db,
+            query.Keyword,
+            query.CategoryId,
+            query.IsActive,
+            query.TrackingType);
 
         items = ApplySorting(items, query.SortBy, query.SortDirection);
 
         var totalCount = await items.CountAsync(cancellationToken);
         var skip = (page - 1) * pageSize;
 
-        var rows = await items
+        var rows = await ProjectToItemListDtos(items)
             .Skip(skip)
             .Take(pageSize)
-            .Select(x => new ItemListDto(
-                x.Id,
-                x.ItemCode,
-                x.Barcode,
-                x.Name,
-                x.CategoryId,
-                x.Category.CategoryCode,
-                x.Category.Name,
-                x.UnitOfMeasureId,
-                x.UnitOfMeasure.UomCode,
-                x.UnitOfMeasure.Name,
-                x.TrackingType,
-                x.IsActive,
-                x.RowVersion,
-                x.CreatedAtUtc,
-                x.UpdatedAtUtc))
             .ToListAsync(cancellationToken);
 
         return new PagedResult<ItemListDto>(rows, totalCount, page, pageSize);
+    }
+
+    public async Task<IReadOnlyList<ItemListDto>> ExportItemsAsync(
+        ExportItemsQuery query,
+        CancellationToken cancellationToken = default)
+    {
+        query ??= new ExportItemsQuery();
+        DemandItemsExportPermission();
+
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var items = BuildFilteredItemsQuery(
+            db,
+            query.Keyword,
+            query.CategoryId,
+            query.IsActive,
+            query.TrackingType);
+
+        items = ApplySorting(items, query.SortBy, query.SortDirection);
+
+        return await ProjectToItemListDtos(items).ToListAsync(cancellationToken);
+    }
+
+    private void DemandItemsExportPermission()
+    {
+        var hasExportPermission = _currentUserContext.HasPermission(PermissionCodes.MasterItemsExport);
+        var hasWritePermission = _currentUserContext.HasPermission(PermissionCodes.MasterItemsWrite);
+
+        if (hasExportPermission || hasWritePermission)
+        {
+            return;
+        }
+
+        _accessControl.DemandPermission(PermissionCodes.MasterItemsExport);
+    }
+
+    private static IQueryable<Item> BuildFilteredItemsQuery(
+        ErpDbContext db,
+        string? keyword,
+        Guid? categoryId,
+        bool? isActive,
+        TrackingType? trackingType)
+    {
+        IQueryable<Item> items = db.Items
+            .AsNoTracking()
+            .Include(x => x.Category)
+            .Include(x => x.UnitOfMeasure);
+
+        var normalizedKeyword = keyword?.Trim();
+        if (!string.IsNullOrWhiteSpace(normalizedKeyword))
+        {
+            items = items.Where(x =>
+                x.ItemCode.Contains(normalizedKeyword) ||
+                x.Name.Contains(normalizedKeyword) ||
+                (x.Barcode != null && x.Barcode.Contains(normalizedKeyword)));
+        }
+
+        if (categoryId.HasValue)
+        {
+            items = items.Where(x => x.CategoryId == categoryId.Value);
+        }
+
+        if (isActive.HasValue)
+        {
+            items = items.Where(x => x.IsActive == isActive.Value);
+        }
+
+        if (trackingType.HasValue)
+        {
+            items = items.Where(x => x.TrackingType == trackingType.Value);
+        }
+
+        return items;
+    }
+
+    private static IQueryable<ItemListDto> ProjectToItemListDtos(IQueryable<Item> items)
+    {
+        return items.Select(x => new ItemListDto(
+            x.Id,
+            x.ItemCode,
+            x.Barcode,
+            x.Name,
+            x.CategoryId,
+            x.Category.CategoryCode,
+            x.Category.Name,
+            x.UnitOfMeasureId,
+            x.UnitOfMeasure.UomCode,
+            x.UnitOfMeasure.Name,
+            x.TrackingType,
+            x.IsActive,
+            x.RowVersion,
+            x.CreatedAtUtc,
+            x.UpdatedAtUtc));
     }
 
     private static IQueryable<Item> ApplySorting(

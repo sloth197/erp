@@ -9,6 +9,7 @@ public static class PermissionCodes
     public const string MasterUsersWrite = "Master.Users.Write";
     public const string MasterItemsRead = "Master.Items.Read";
     public const string MasterItemsWrite = "Master.Items.Write";
+    public const string MasterItemsExport = "Master.Items.Export";
     public const string MasterPartnersRead = "Master.Partners.Read";
     public const string MasterPartnersWrite = "Master.Partners.Write";
 
@@ -31,6 +32,7 @@ public static class PermissionCodes
         MasterUsersWrite,
         MasterItemsRead,
         MasterItemsWrite,
+        MasterItemsExport,
         MasterPartnersRead,
         MasterPartnersWrite,
         InventoryStockRead,

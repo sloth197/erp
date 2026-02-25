@@ -11,4 +11,8 @@ public interface IItemQueryService
     Task<PagedResult<ItemListDto>> SearchItemsAsync(
         SearchItemsQuery query,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<ItemListDto>> ExportItemsAsync(
+        ExportItemsQuery query,
+        CancellationToken cancellationToken = default);
 }
