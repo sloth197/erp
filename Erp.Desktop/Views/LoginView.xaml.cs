@@ -7,6 +7,9 @@ namespace Erp.Desktop.Views;
 
 public partial class LoginView : UserControl
 {
+    private const string ShowIcon = "\U0001F441";
+    private const string HideIcon = "\U0001F648";
+
     private bool _isPasswordVisible;
     private LoginViewModel? _viewModel;
 
@@ -14,6 +17,7 @@ public partial class LoginView : UserControl
     {
         InitializeComponent();
         DataContextChanged += LoginView_OnDataContextChanged;
+        UpdateToggleIcon();
     }
 
     private void PasswordBox_OnPasswordChanged(object sender, RoutedEventArgs e)
@@ -81,7 +85,7 @@ public partial class LoginView : UserControl
 
             PasswordTextBox.Visibility = Visibility.Visible;
             PasswordBox.Visibility = Visibility.Collapsed;
-            TogglePasswordButton.Content = "숨김";
+            UpdateToggleIcon();
 
             PasswordTextBox.Focus();
             PasswordTextBox.SelectionStart = PasswordTextBox.Text.Length;
@@ -100,8 +104,13 @@ public partial class LoginView : UserControl
 
         PasswordTextBox.Visibility = Visibility.Collapsed;
         PasswordBox.Visibility = Visibility.Visible;
-        TogglePasswordButton.Content = "보기";
+        UpdateToggleIcon();
 
         PasswordBox.Focus();
+    }
+
+    private void UpdateToggleIcon()
+    {
+        TogglePasswordButton.Content = _isPasswordVisible ? HideIcon : ShowIcon;
     }
 }

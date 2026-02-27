@@ -19,25 +19,25 @@
 
                 <TextBlock Text="비밀번호" Margin="0,12,0,4" />
                 <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-
-                    <Grid Grid.Column="0">
-                        <PasswordBox x:Name="PasswordBox"
-                                     PasswordChanged="PasswordBox_OnPasswordChanged" />
-                        <TextBox x:Name="PasswordTextBox"
-                                 Text="{Binding Password, UpdateSourceTrigger=PropertyChanged}"
-                                 Visibility="Collapsed" />
-                    </Grid>
-
+                    <PasswordBox x:Name="PasswordBox"
+                                 Padding="0,0,34,0"
+                                 PasswordChanged="PasswordBox_OnPasswordChanged" />
+                    <TextBox x:Name="PasswordTextBox"
+                             Padding="0,0,34,0"
+                             Text="{Binding Password, UpdateSourceTrigger=PropertyChanged}"
+                             Visibility="Collapsed" />
                     <Button x:Name="TogglePasswordButton"
-                            Grid.Column="1"
-                            Width="58"
-                            Margin="8,0,0,0"
-                            Content="보기"
-                            Click="TogglePasswordButton_OnClick" />
+                            Width="28"
+                            Height="24"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            Margin="0,0,4,0"
+                            Click="TogglePasswordButton_OnClick"
+                            ToolTip="비밀번호 보기/숨김"
+                            FontSize="13"
+                            Background="Transparent"
+                            BorderBrush="Transparent"
+                            Padding="0" />
                 </Grid>
 
                 <TextBlock Text="{Binding ErrorMessage}" Margin="0,12,0,0" Foreground="#B00020" TextWrapping="Wrap" />
