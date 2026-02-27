@@ -457,32 +457,92 @@ public sealed class ErpDbContext : DbContext
         user.ToTable("users");
         user.HasKey(x => x.Id);
 
-        user.Property(x => x.Id).HasColumnName("id");
+        user.Property(x => x.Id)
+            .HasColumnName("id");
+
         user.Property(x => x.Username)
             .HasColumnName("username")
             .HasMaxLength(100)
             .IsRequired();
+
         user.Property(x => x.PasswordHash)
             .HasColumnName("password_hash")
             .HasMaxLength(500)
             .IsRequired();
+
+        user.Property(x => x.Email)
+            .HasColumnName("email")
+            .HasMaxLength(320);
+
+        user.Property(x => x.Status)
+            .HasColumnName("status")
+            .HasConversion<string>()
+            .HasMaxLength(20)
+            .IsRequired();
+
         user.Property(x => x.IsActive)
             .HasColumnName("is_active")
             .IsRequired();
+
         user.Property(x => x.FailedLoginCount)
             .HasColumnName("failed_login_count")
             .IsRequired();
+
         user.Property(x => x.LockoutEndUtc)
             .HasColumnName("lockout_end_utc");
+
         user.Property(x => x.CreatedAtUtc)
             .HasColumnName("created_at_utc")
             .IsRequired();
 
-        user.HasIndex(x => x.Username).IsUnique();
+        user.Property(x => x.ApprovedAtUtc)
+            .HasColumnName("approved_at_utc");
+
+        user.Property(x => x.ApprovedByUserId)
+            .HasColumnName("approved_by_user_id");
+
+        user.Property(x => x.DisabledAtUtc)
+            .HasColumnName("disabled_at_utc");
+
+        user.Property(x => x.DisabledByUserId)
+            .HasColumnName("disabled_by_user_id");
+
+        user.Property(x => x.RejectedAtUtc)
+            .HasColumnName("rejected_at_utc");
+
+        user.Property(x => x.RejectedByUserId)
+            .HasColumnName("rejected_by_user_id");
+
+        user.Property(x => x.RejectReason)
+            .HasColumnName("reject_reason")
+            .HasMaxLength(500);
+
+        user.HasIndex(x => x.Username)
+            .IsUnique();
+
+        user.HasIndex(x => x.Email)
+            .IsUnique();
+
+        user.HasIndex(x => x.Status);
 
         user.HasMany(x => x.UserRoles)
             .WithOne(x => x.User)
             .HasForeignKey(x => x.UserId);
+
+        user.HasOne<User>()
+            .WithMany()
+            .HasForeignKey(x => x.ApprovedByUserId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        user.HasOne<User>()
+            .WithMany()
+            .HasForeignKey(x => x.DisabledByUserId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        user.HasOne<User>()
+            .WithMany()
+            .HasForeignKey(x => x.RejectedByUserId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 
     private static void ConfigureRoles(ModelBuilder modelBuilder)

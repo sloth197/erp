@@ -69,7 +69,7 @@ public sealed class RegistrationService : IRegistrationService
         db.Users.Add(user);
         db.AuditLogs.Add(new AuditLog(
             actorUserId: null,
-            action: "Auth.Registered",
+            action: "User.Registered",
             target: user.Username,
             detailJson: SerializeDetail(new { user.Email, user.Status }),
             ip: null));

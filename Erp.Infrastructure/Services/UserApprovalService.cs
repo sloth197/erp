@@ -89,6 +89,11 @@ public sealed class UserApprovalService : IUserApprovalService
             throw new InvalidOperationException("사용자를 찾을 수 없습니다.");
         }
 
+        if (user.Status != UserStatus.Pending)
+        {
+            throw new InvalidOperationException("승인 대기 상태의 계정만 승인할 수 있습니다.");
+        }
+
         user.Approve(_currentUserContext.CurrentUserId);
 
         string? assignedRole = null;
@@ -96,13 +101,22 @@ public sealed class UserApprovalService : IUserApprovalService
         {
             var defaultRole = await db.Roles
                 .FirstOrDefaultAsync(x => x.Name == DefaultRoleName, cancellationToken);
+
+            var roleWasCreated = false;
             if (defaultRole is null)
             {
-                throw new InvalidOperationException($"기본 역할({DefaultRoleName})을 찾을 수 없습니다.");
+                defaultRole = new Role(DefaultRoleName);
+                db.Roles.Add(defaultRole);
+                roleWasCreated = true;
             }
 
-            var hasRole = await db.UserRoles
-                .AnyAsync(x => x.UserId == user.Id && x.RoleId == defaultRole.Id, cancellationToken);
+            var hasRole = false;
+            if (!roleWasCreated)
+            {
+                hasRole = await db.UserRoles
+                    .AnyAsync(x => x.UserId == user.Id && x.RoleId == defaultRole.Id, cancellationToken);
+            }
+
             if (!hasRole)
             {
                 db.UserRoles.Add(new UserRole(user.Id, defaultRole.Id));
@@ -151,13 +165,16 @@ public sealed class UserApprovalService : IUserApprovalService
             actorUserId: _currentUserContext.CurrentUserId,
             action: "User.Rejected",
             target: user.Username,
-            detailJson: SerializeDetail(new { request.Reason }),
+            detailJson: SerializeDetail(new { request.Reason, user.Status }),
             ip: null));
 
         await db.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task DisableAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task DisableAsync(
+        Guid userId,
+        string? reason = null,
+        CancellationToken cancellationToken = default)
     {
         _accessControl.DemandPermission(PermissionCodes.MasterUsersWrite);
 
@@ -181,7 +198,7 @@ public sealed class UserApprovalService : IUserApprovalService
             actorUserId: _currentUserContext.CurrentUserId,
             action: "User.Disabled",
             target: user.Username,
-            detailJson: SerializeDetail(new { user.Status }),
+            detailJson: SerializeDetail(new { reason, user.Status }),
             ip: null));
 
         await db.SaveChangesAsync(cancellationToken);
