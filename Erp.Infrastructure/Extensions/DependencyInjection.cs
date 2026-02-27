@@ -31,6 +31,7 @@ public static class DependencyInjection
         services.AddSingleton<IUserService, UserService>();
         services.AddSingleton<IItemCommandService, ItemCommandService>();
         services.AddSingleton<IItemQueryService, SearchItemsQueryHandler>();
+        services.AddSingleton<IInventoryQueryService, SearchStockOnHandQueryHandler>();
 
         services.AddSingleton<IDataSeeder, ErpDataSeeder>();
 
