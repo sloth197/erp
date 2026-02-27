@@ -13,6 +13,10 @@ public sealed class ErpDbContext : DbContext
     public DbSet<ItemCategory> ItemCategories => Set<ItemCategory>();
     public DbSet<UnitOfMeasure> UnitOfMeasures => Set<UnitOfMeasure>();
     public DbSet<ItemUomConversion> ItemUomConversions => Set<ItemUomConversion>();
+    public DbSet<Warehouse> Warehouses => Set<Warehouse>();
+    public DbSet<Location> Locations => Set<Location>();
+    public DbSet<InventoryBalance> InventoryBalances => Set<InventoryBalance>();
+    public DbSet<StockLedgerEntry> StockLedgerEntries => Set<StockLedgerEntry>();
     public DbSet<User> Users => Set<User>();
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<Permission> Permissions => Set<Permission>();
@@ -28,6 +32,10 @@ public sealed class ErpDbContext : DbContext
         ConfigureItemCategories(modelBuilder);
         ConfigureUnitOfMeasures(modelBuilder);
         ConfigureItemUomConversions(modelBuilder);
+        ConfigureWarehouses(modelBuilder);
+        ConfigureLocations(modelBuilder);
+        ConfigureInventoryBalances(modelBuilder);
+        ConfigureStockLedgerEntries(modelBuilder);
         ConfigureUsers(modelBuilder);
         ConfigureRoles(modelBuilder);
         ConfigurePermissions(modelBuilder);
@@ -218,6 +226,228 @@ public sealed class ErpDbContext : DbContext
             .WithMany()
             .HasForeignKey(x => x.ToUnitOfMeasureId)
             .OnDelete(DeleteBehavior.Restrict);
+    }
+
+    private static void ConfigureWarehouses(ModelBuilder modelBuilder)
+    {
+        var warehouse = modelBuilder.Entity<Warehouse>();
+        warehouse.ToTable("warehouses");
+        warehouse.HasKey(x => x.Id);
+
+        warehouse.Property(x => x.Id)
+            .HasColumnName("id");
+
+        warehouse.Property(x => x.Code)
+            .HasColumnName("code")
+            .HasMaxLength(30)
+            .IsRequired();
+
+        warehouse.Property(x => x.Name)
+            .HasColumnName("name")
+            .HasMaxLength(200)
+            .IsRequired();
+
+        warehouse.Property(x => x.IsActive)
+            .HasColumnName("is_active")
+            .IsRequired()
+            .HasDefaultValue(true);
+
+        warehouse.HasIndex(x => x.Code)
+            .IsUnique();
+    }
+
+    private static void ConfigureLocations(ModelBuilder modelBuilder)
+    {
+        var location = modelBuilder.Entity<Location>();
+        location.ToTable("locations");
+        location.HasKey(x => x.Id);
+
+        location.Property(x => x.Id)
+            .HasColumnName("id");
+
+        location.Property(x => x.WarehouseId)
+            .HasColumnName("warehouse_id")
+            .IsRequired();
+
+        location.Property(x => x.Code)
+            .HasColumnName("code")
+            .HasMaxLength(30)
+            .IsRequired();
+
+        location.Property(x => x.Name)
+            .HasColumnName("name")
+            .HasMaxLength(200)
+            .IsRequired();
+
+        location.Property(x => x.IsActive)
+            .HasColumnName("is_active")
+            .IsRequired()
+            .HasDefaultValue(true);
+
+        location.HasIndex(x => new { x.WarehouseId, x.Code })
+            .IsUnique();
+
+        location.HasOne(x => x.Warehouse)
+            .WithMany(x => x.Locations)
+            .HasForeignKey(x => x.WarehouseId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+
+    private static void ConfigureInventoryBalances(ModelBuilder modelBuilder)
+    {
+        var balance = modelBuilder.Entity<InventoryBalance>();
+        balance.ToTable("inventory_balances");
+        balance.HasKey(x => x.Id);
+
+        balance.Property(x => x.Id)
+            .HasColumnName("id");
+
+        balance.Property(x => x.ItemId)
+            .HasColumnName("item_id")
+            .IsRequired();
+
+        balance.Property(x => x.WarehouseId)
+            .HasColumnName("warehouse_id")
+            .IsRequired();
+
+        balance.Property(x => x.LocationId)
+            .HasColumnName("location_id");
+
+        balance.Property(x => x.QtyOnHand)
+            .HasColumnName("qty_on_hand")
+            .HasPrecision(18, 4)
+            .IsRequired();
+
+        balance.Property(x => x.QtyAllocated)
+            .HasColumnName("qty_allocated")
+            .HasPrecision(18, 4)
+            .IsRequired()
+            .HasDefaultValue(0m);
+
+        balance.Property(x => x.RowVersion)
+            .HasColumnName("row_version")
+            .IsRowVersion()
+            .IsConcurrencyToken();
+
+        balance.Property(x => x.CreatedAtUtc)
+            .HasColumnName("created_at_utc")
+            .IsRequired();
+
+        balance.Property(x => x.UpdatedAtUtc)
+            .HasColumnName("updated_at_utc")
+            .IsRequired();
+
+        balance.HasIndex(x => new { x.ItemId, x.WarehouseId, x.LocationId })
+            .IsUnique()
+            .HasDatabaseName("ux_inventory_balances_item_wh_loc_notnull")
+            .HasFilter("location_id IS NOT NULL");
+
+        balance.HasIndex(x => new { x.ItemId, x.WarehouseId })
+            .IsUnique()
+            .HasDatabaseName("ux_inventory_balances_item_wh_null")
+            .HasFilter("location_id IS NULL");
+
+        balance.HasOne(x => x.Item)
+            .WithMany()
+            .HasForeignKey(x => x.ItemId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        balance.HasOne(x => x.Warehouse)
+            .WithMany(x => x.InventoryBalances)
+            .HasForeignKey(x => x.WarehouseId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        balance.HasOne(x => x.Location)
+            .WithMany(x => x.InventoryBalances)
+            .HasForeignKey(x => x.LocationId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+
+    private static void ConfigureStockLedgerEntries(ModelBuilder modelBuilder)
+    {
+        var ledger = modelBuilder.Entity<StockLedgerEntry>();
+        ledger.ToTable("stock_ledger_entries");
+        ledger.HasKey(x => x.Id);
+
+        ledger.Property(x => x.Id)
+            .HasColumnName("id");
+
+        ledger.Property(x => x.TxNo)
+            .HasColumnName("tx_no")
+            .HasMaxLength(60)
+            .IsRequired();
+
+        ledger.Property(x => x.TxType)
+            .HasColumnName("tx_type")
+            .HasConversion<string>()
+            .HasMaxLength(30)
+            .IsRequired();
+
+        ledger.Property(x => x.ItemId)
+            .HasColumnName("item_id")
+            .IsRequired();
+
+        ledger.Property(x => x.WarehouseId)
+            .HasColumnName("warehouse_id")
+            .IsRequired();
+
+        ledger.Property(x => x.LocationId)
+            .HasColumnName("location_id");
+
+        ledger.Property(x => x.Qty)
+            .HasColumnName("qty")
+            .HasPrecision(18, 4)
+            .IsRequired();
+
+        ledger.Property(x => x.UnitCost)
+            .HasColumnName("unit_cost")
+            .HasPrecision(18, 4);
+
+        ledger.Property(x => x.OccurredAtUtc)
+            .HasColumnName("occurred_at_utc")
+            .IsRequired();
+
+        ledger.Property(x => x.CreatedAtUtc)
+            .HasColumnName("created_at_utc")
+            .IsRequired();
+
+        ledger.Property(x => x.ReferenceType)
+            .HasColumnName("reference_type")
+            .HasConversion<string>()
+            .HasMaxLength(30);
+
+        ledger.Property(x => x.ReferenceId)
+            .HasColumnName("reference_id");
+
+        ledger.Property(x => x.Note)
+            .HasColumnName("note")
+            .HasMaxLength(1000);
+
+        ledger.Property(x => x.ActorUserId)
+            .HasColumnName("actor_user_id");
+
+        ledger.HasIndex(x => x.TxNo);
+        ledger.HasIndex(x => x.OccurredAtUtc);
+
+        ledger.HasOne(x => x.Item)
+            .WithMany()
+            .HasForeignKey(x => x.ItemId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        ledger.HasOne(x => x.Warehouse)
+            .WithMany(x => x.StockLedgerEntries)
+            .HasForeignKey(x => x.WarehouseId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        ledger.HasOne(x => x.Location)
+            .WithMany(x => x.StockLedgerEntries)
+            .HasForeignKey(x => x.LocationId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        ledger.HasOne(x => x.ActorUser)
+            .WithMany()
+            .HasForeignKey(x => x.ActorUserId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 
     private static void ConfigureUsers(ModelBuilder modelBuilder)

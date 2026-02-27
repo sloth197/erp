@@ -62,6 +62,7 @@ public sealed class ErpDataSeeder : IDataSeeder
 
         await EnsureUserAsync(db, adminUsername, adminPassword, adminRole, cancellationToken);
         await EnsureUserAsync(db, staffUsername, staffPassword, staffRole, cancellationToken);
+        await EnsureWarehouseSeedsAsync(db, cancellationToken);
 
         await db.SaveChangesAsync(cancellationToken);
     }
@@ -158,5 +159,50 @@ public sealed class ErpDataSeeder : IDataSeeder
         }
 
         return trimmed;
+    }
+
+    private static async Task EnsureWarehouseSeedsAsync(ErpDbContext db, CancellationToken cancellationToken)
+    {
+        var mainWarehouse = await EnsureWarehouseAsync(db, "MAIN", "Main Warehouse", cancellationToken);
+        _ = await EnsureLocationAsync(db, mainWarehouse.Id, "A-01", "A-01", cancellationToken);
+        _ = await EnsureLocationAsync(db, mainWarehouse.Id, "A-02", "A-02", cancellationToken);
+    }
+
+    private static async Task<Warehouse> EnsureWarehouseAsync(
+        ErpDbContext db,
+        string code,
+        string name,
+        CancellationToken cancellationToken)
+    {
+        var warehouse = await db.Warehouses.FirstOrDefaultAsync(x => x.Code == code, cancellationToken);
+        if (warehouse is not null)
+        {
+            return warehouse;
+        }
+
+        warehouse = new Warehouse(code, name);
+        db.Warehouses.Add(warehouse);
+        return warehouse;
+    }
+
+    private static async Task<Location> EnsureLocationAsync(
+        ErpDbContext db,
+        Guid warehouseId,
+        string code,
+        string name,
+        CancellationToken cancellationToken)
+    {
+        var location = await db.Locations.FirstOrDefaultAsync(
+            x => x.WarehouseId == warehouseId && x.Code == code,
+            cancellationToken);
+
+        if (location is not null)
+        {
+            return location;
+        }
+
+        location = new Location(warehouseId, code, name);
+        db.Locations.Add(location);
+        return location;
     }
 }
