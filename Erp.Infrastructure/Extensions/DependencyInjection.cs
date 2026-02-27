@@ -28,6 +28,8 @@ public static class DependencyInjection
         services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
         services.AddSingleton<IAccessControl, AccessControlService>();
         services.AddSingleton<IAuthService, AuthService>();
+        services.AddSingleton<IRegistrationService, RegistrationService>();
+        services.AddSingleton<IUserApprovalService, UserApprovalService>();
         services.AddSingleton<IUserService, UserService>();
         services.AddSingleton<IItemCommandService, ItemCommandService>();
         services.AddSingleton<IItemQueryService, SearchItemsQueryHandler>();

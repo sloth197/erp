@@ -134,6 +134,11 @@ public sealed class ErpDataSeeder : IDataSeeder
             await db.SaveChangesAsync(cancellationToken);
         }
 
+        if (user.Status != UserStatus.Active || !user.IsActive)
+        {
+            user.Approve(approvedByUserId: null, approvedAtUtc: DateTime.UtcNow);
+        }
+
         var hasRole = await db.UserRoles.AnyAsync(
             x => x.UserId == user.Id && x.RoleId == role.Id,
             cancellationToken);
