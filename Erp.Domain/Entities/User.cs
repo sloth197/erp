@@ -1,4 +1,4 @@
-﻿namespace Erp.Domain.Entities;
+namespace Erp.Domain.Entities;
 
 public sealed class User
 {
@@ -7,10 +7,22 @@ public sealed class User
     public Guid Id { get; private set; }
     public string Username { get; private set; } = string.Empty;
     public string PasswordHash { get; private set; } = string.Empty;
+    public string? Email { get; private set; }
+    public UserStatus Status { get; private set; } = UserStatus.Pending;
     public bool IsActive { get; private set; }
     public int FailedLoginCount { get; private set; }
     public DateTime? LockoutEndUtc { get; private set; }
     public DateTime CreatedAtUtc { get; private set; }
+
+    public DateTime? ApprovedAtUtc { get; private set; }
+    public Guid? ApprovedByUserId { get; private set; }
+
+    public DateTime? DisabledAtUtc { get; private set; }
+    public Guid? DisabledByUserId { get; private set; }
+
+    public DateTime? RejectedAtUtc { get; private set; }
+    public Guid? RejectedByUserId { get; private set; }
+    public string? RejectReason { get; private set; }
 
     public IReadOnlyCollection<UserRole> UserRoles => _userRoles;
 
@@ -18,7 +30,7 @@ public sealed class User
     {
     }
 
-    public User(string username, string passwordHash)
+    public User(string username, string passwordHash, string? email = null)
     {
         if (string.IsNullOrWhiteSpace(username))
         {
@@ -33,10 +45,21 @@ public sealed class User
         Id = Guid.NewGuid();
         Username = username.Trim();
         PasswordHash = passwordHash.Trim();
-        IsActive = true;
+        Email = NormalizeOptional(email);
+
+        Status = UserStatus.Pending;
+        IsActive = false;
         FailedLoginCount = 0;
         LockoutEndUtc = null;
         CreatedAtUtc = DateTime.UtcNow;
+
+        ApprovedAtUtc = null;
+        ApprovedByUserId = null;
+        DisabledAtUtc = null;
+        DisabledByUserId = null;
+        RejectedAtUtc = null;
+        RejectedByUserId = null;
+        RejectReason = null;
     }
 
     public bool IsLockedOut(DateTime utcNow)
@@ -81,13 +104,68 @@ public sealed class User
         PasswordHash = passwordHash.Trim();
     }
 
+    public void SetEmail(string? email)
+    {
+        Email = NormalizeOptional(email);
+    }
+
+    public void Approve(Guid? approvedByUserId = null, DateTime? approvedAtUtc = null)
+    {
+        Status = UserStatus.Active;
+        IsActive = true;
+
+        ApprovedByUserId = approvedByUserId;
+        ApprovedAtUtc = approvedAtUtc ?? DateTime.UtcNow;
+
+        DisabledByUserId = null;
+        DisabledAtUtc = null;
+
+        RejectedByUserId = null;
+        RejectedAtUtc = null;
+        RejectReason = null;
+    }
+
+    public void Reject(Guid? rejectedByUserId = null, string? reason = null, DateTime? rejectedAtUtc = null)
+    {
+        Status = UserStatus.Rejected;
+        IsActive = false;
+
+        RejectedByUserId = rejectedByUserId;
+        RejectedAtUtc = rejectedAtUtc ?? DateTime.UtcNow;
+        RejectReason = NormalizeOptional(reason);
+    }
+
     public void Disable()
     {
+        Disable(null, null);
+    }
+
+    public void Disable(Guid? disabledByUserId, DateTime? disabledAtUtc = null)
+    {
+        Status = UserStatus.Disabled;
         IsActive = false;
+
+        DisabledByUserId = disabledByUserId;
+        DisabledAtUtc = disabledAtUtc ?? DateTime.UtcNow;
     }
 
     public void Enable()
     {
-        IsActive = true;
+        Approve(null, null);
+    }
+
+    public void Enable(Guid? approvedByUserId, DateTime? approvedAtUtc = null)
+    {
+        Approve(approvedByUserId, approvedAtUtc);
+    }
+
+    private static string? NormalizeOptional(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        return value.Trim();
     }
 }
