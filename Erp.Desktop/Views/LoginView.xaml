@@ -18,7 +18,27 @@
                 <TextBox Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}" />
 
                 <TextBlock Text="비밀번호" Margin="0,12,0,4" />
-                <PasswordBox x:Name="PasswordBox" PasswordChanged="PasswordBox_OnPasswordChanged" />
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <Grid Grid.Column="0">
+                        <PasswordBox x:Name="PasswordBox"
+                                     PasswordChanged="PasswordBox_OnPasswordChanged" />
+                        <TextBox x:Name="PasswordTextBox"
+                                 Text="{Binding Password, UpdateSourceTrigger=PropertyChanged}"
+                                 Visibility="Collapsed" />
+                    </Grid>
+
+                    <Button x:Name="TogglePasswordButton"
+                            Grid.Column="1"
+                            Width="58"
+                            Margin="8,0,0,0"
+                            Content="보기"
+                            Click="TogglePasswordButton_OnClick" />
+                </Grid>
 
                 <TextBlock Text="{Binding ErrorMessage}" Margin="0,12,0,0" Foreground="#B00020" TextWrapping="Wrap" />
 
