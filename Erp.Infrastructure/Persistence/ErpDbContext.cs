@@ -426,7 +426,8 @@ public sealed class ErpDbContext : DbContext
         ledger.Property(x => x.ActorUserId)
             .HasColumnName("actor_user_id");
 
-        ledger.HasIndex(x => x.TxNo);
+        ledger.HasIndex(x => x.TxNo)
+            .IsUnique();
         ledger.HasIndex(x => x.OccurredAtUtc);
 
         ledger.HasOne(x => x.Item)
