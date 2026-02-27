@@ -10,7 +10,7 @@
     <DockPanel>
         <Border DockPanel.Dock="Top" Background="#1E293B" Padding="12">
             <DockPanel LastChildFill="True">
-                <TextBlock Text="ERP Desktop" Foreground="White" FontSize="15" FontWeight="SemiBold"
+                <TextBlock Text="ERP Program" Foreground="White" FontSize="15" FontWeight="SemiBold"
                            VerticalAlignment="Center" />
 
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">

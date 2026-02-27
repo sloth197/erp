@@ -11,13 +11,13 @@
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center">
             <StackPanel>
-                <TextBlock Text="ERP 로그인" FontSize="24" FontWeight="Bold" />
+                <TextBlock Text="ERP Login" FontSize="24" FontWeight="Bold" />
                 <TextBlock Text="운영 계정으로 로그인하세요." Margin="0,6,0,20" Foreground="#667085" />
 
-                <TextBlock Text="아이디" Margin="0,0,0,4" />
+                <TextBlock Text="ID" Margin="0,0,0,4" />
                 <TextBox Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}" />
 
-                <TextBlock Text="비밀번호" Margin="0,12,0,4" />
+                <TextBlock Text="PW" Margin="0,12,0,4" />
                 <Grid>
                     <PasswordBox x:Name="PasswordBox"
                                  Padding="0,0,34,0"
@@ -55,10 +55,23 @@
                     </TextBlock.Style>
                 </TextBlock>
 
-                <Button Content="로그인"
-                        Command="{Binding LoginCommand}"
-                        Margin="0,16,0,0"
-                        Height="36" />
+                <Grid Margin="0,16,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="8" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Button Grid.Column="0"
+                            Content="로그인"
+                            Command="{Binding LoginCommand}"
+                            Height="36" />
+
+                    <Button Grid.Column="2"
+                            Content="회원가입"
+                            Command="{Binding SignUpCommand}"
+                            Height="36" />
+                </Grid>
 
                 <TextBlock Text="관리자/스태프 계정은 보안 시드 설정에서 구성하세요."
                            Margin="0,14,0,0"
