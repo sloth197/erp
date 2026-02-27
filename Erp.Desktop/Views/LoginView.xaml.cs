@@ -111,6 +111,6 @@ public partial class LoginView : UserControl
 
     private void UpdateToggleIcon()
     {
-        TogglePasswordButton.Content = _isPasswordVisible ? HideIcon : ShowIcon;
+        TogglePasswordButton.Content = _isPasswordVisible ? ShowIcon : HideIcon;
     }
 }
