@@ -1,0 +1,91 @@
+using Erp.Application.DTOs;
+using Erp.Application.Interfaces;
+using Erp.Domain.Entities;
+using Erp.Infrastructure.Persistence;
+using Erp.Infrastructure.Security;
+using Erp.Infrastructure.Services;
+using Microsoft.EntityFrameworkCore;
+
+namespace Erp.Tests;
+
+public sealed class RegistrationServiceTests
+{
+    [Fact]
+    public async Task RegisterAsync_CreatesPendingUser_AndAuditLog()
+    {
+        var fixture = CreateFixture();
+
+        var result = await fixture.RegistrationService.RegisterAsync(
+            new RegisterRequest("signup-user", "Password!1", "signup@erp.local"));
+
+        Assert.True(result.Success);
+        Assert.Null(result.ErrorMessage);
+
+        await using var db = await fixture.Factory.CreateDbContextAsync();
+        var user = await db.Users.SingleAsync(x => x.Username == "signup-user");
+
+        Assert.Equal("signup@erp.local", user.Email);
+        Assert.Equal(UserStatus.Pending, user.Status);
+        Assert.False(user.IsActive);
+
+        var hasAudit = await db.AuditLogs.AnyAsync(
+            x => x.Action == "User.Registered" && x.Target == "signup-user");
+        Assert.True(hasAudit);
+    }
+
+    [Fact]
+    public async Task LoginAsync_FailsForPendingUser_WithExpectedMessage()
+    {
+        var fixture = CreateFixture();
+
+        var registerResult = await fixture.RegistrationService.RegisterAsync(
+            new RegisterRequest("pending-user", "Password!1", null));
+        Assert.True(registerResult.Success);
+
+        var loginResult = await fixture.AuthService.LoginAsync("pending-user", "Password!1");
+
+        Assert.False(loginResult.Success);
+        Assert.Equal("승인 대기 중입니다.", loginResult.ErrorMessage);
+    }
+
+    private static TestFixture CreateFixture()
+    {
+        var options = new DbContextOptionsBuilder<ErpDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        var factory = new TestDbContextFactory(options);
+        IPasswordHasher passwordHasher = new Pbkdf2PasswordHasher();
+        var currentUserContext = new CurrentUserContext();
+
+        var registrationService = new RegistrationService(factory, passwordHasher);
+        var authService = new AuthService(factory, passwordHasher, currentUserContext);
+
+        return new TestFixture(factory, registrationService, authService);
+    }
+
+    private sealed record TestFixture(
+        TestDbContextFactory Factory,
+        RegistrationService RegistrationService,
+        AuthService AuthService);
+
+    private sealed class TestDbContextFactory : IDbContextFactory<ErpDbContext>
+    {
+        private readonly DbContextOptions<ErpDbContext> _options;
+
+        public TestDbContextFactory(DbContextOptions<ErpDbContext> options)
+        {
+            _options = options;
+        }
+
+        public ErpDbContext CreateDbContext()
+        {
+            return new ErpDbContext(_options);
+        }
+
+        public ValueTask<ErpDbContext> CreateDbContextAsync(CancellationToken cancellationToken = default)
+        {
+            return ValueTask.FromResult(new ErpDbContext(_options));
+        }
+    }
+}

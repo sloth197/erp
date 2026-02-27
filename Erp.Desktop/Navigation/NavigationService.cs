@@ -37,7 +37,7 @@ public sealed partial class NavigationService : ObservableObject, INavigationSer
 
         try
         {
-            CurrentViewModel = _serviceProvider.GetRequiredService<TViewModel>();
+            CurrentViewModel = ActivatorUtilities.GetServiceOrCreateInstance<TViewModel>(_serviceProvider);
             return true;
         }
         catch (Exception ex)
