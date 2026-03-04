@@ -8,33 +8,19 @@ using Erp.Desktop.Navigation;
 namespace Erp.Desktop.ViewModels;
 
 [AllowAnonymousNavigation]
-public sealed partial class SignupViewModel : ObservableObject
+public sealed partial class SignupViewModel : ViewModelBase
 {
     private readonly IRegistrationService _registrationService;
     private readonly INavigationService _navigationService;
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(RegisterCommand))]
     private string username = string.Empty;
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(RegisterCommand))]
     private string password = string.Empty;
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(RegisterCommand))]
     private string? email;
-
-    [ObservableProperty]
-    private string? errorMessage;
-
-    [ObservableProperty]
-    private string? statusMessage;
-
-    [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(RegisterCommand))]
-    [NotifyCanExecuteChangedFor(nameof(BackToLoginCommand))]
-    private bool isBusy;
 
     [ObservableProperty]
     private bool isRegistrationSucceeded;
@@ -62,50 +48,55 @@ public sealed partial class SignupViewModel : ObservableObject
         var normalizedUsername = Username.Trim();
         var normalizedEmail = string.IsNullOrWhiteSpace(Email) ? null : Email.Trim();
 
+        ClearValidationErrors();
+        ClearUserMessage();
+        IsRegistrationSucceeded = false;
+
         if (normalizedUsername.Length < 3)
         {
-            ErrorMessage = "아이디는 3자 이상이어야 합니다.";
-            return;
+            AddValidationError("아이디는 3자 이상이어야 합니다.");
         }
 
         if (Password.Length < 8)
         {
-            ErrorMessage = "비밀번호는 8자 이상이어야 합니다.";
-            return;
+            AddValidationError("비밀번호는 8자 이상이어야 합니다.");
         }
 
         if (!string.IsNullOrWhiteSpace(normalizedEmail) && !IsValidEmail(normalizedEmail))
         {
-            ErrorMessage = "이메일 형식이 올바르지 않습니다.";
+            AddValidationError("이메일 형식이 올바르지 않습니다.");
+        }
+
+        if (HasValidationErrors)
+        {
+            SetError("입력값을 확인하세요.");
             return;
         }
 
         try
         {
-            IsBusy = true;
-            ErrorMessage = null;
-            StatusMessage = null;
+            SetBusy(true, "회원가입 처리 중...");
 
             var result = await _registrationService.RegisterAsync(
                 new RegisterRequest(normalizedUsername, Password, normalizedEmail));
 
             if (!result.Success)
             {
-                ErrorMessage = result.ErrorMessage ?? "회원가입에 실패했습니다.";
+                SetError(result.ErrorMessage ?? "회원가입에 실패했습니다.");
                 return;
             }
 
             IsRegistrationSucceeded = true;
             Password = string.Empty;
-            StatusMessage = "회원가입이 완료되었습니다. 승인 대기 중입니다.";
+            SetSuccess("회원가입이 완료되었습니다. 승인 대기 중입니다.");
         }
         catch (Exception ex)
         {
-            ErrorMessage = ex.Message;
+            SetError(ex.Message);
         }
         finally
         {
-            IsBusy = false;
+            SetBusy(false);
         }
     }
 
@@ -113,6 +104,12 @@ public sealed partial class SignupViewModel : ObservableObject
     private void BackToLogin()
     {
         _navigationService.NavigateTo<LoginViewModel>();
+    }
+
+    protected override void OnBusyStateChanged(bool isBusy)
+    {
+        RegisterCommand.NotifyCanExecuteChanged();
+        BackToLoginCommand.NotifyCanExecuteChanged();
     }
 
     private static bool IsValidEmail(string value)

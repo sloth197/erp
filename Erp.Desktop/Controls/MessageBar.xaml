@@ -1,0 +1,27 @@
+<UserControl x:Class="Erp.Desktop.Controls.MessageBar"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Name="Root">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+    </UserControl.Resources>
+
+    <Border x:Name="MessageBorder"
+            Padding="10"
+            CornerRadius="6"
+            BorderThickness="1"
+            Background="#E7F6EC"
+            BorderBrush="#98D8AC"
+            Visibility="{Binding IsOpen, ElementName=Root, Converter={StaticResource BoolToVisibility}}">
+        <DockPanel LastChildFill="True">
+            <TextBlock x:Name="KindIcon"
+                       Text="i"
+                       FontWeight="SemiBold"
+                       Margin="0,0,8,0"
+                       VerticalAlignment="Center" />
+            <TextBlock Text="{Binding Message, ElementName=Root}"
+                       VerticalAlignment="Center"
+                       TextWrapping="Wrap" />
+        </DockPanel>
+    </Border>
+</UserControl>

@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Erp.Application.Authorization;
@@ -10,7 +10,7 @@ using Erp.Desktop.Navigation;
 namespace Erp.Desktop.ViewModels;
 
 [RequiredPermission(PermissionCodes.InventoryStockRead)]
-public sealed partial class InventoryOnHandViewModel : ObservableObject
+public sealed partial class InventoryOnHandViewModel : ViewModelBase
 {
     private readonly IInventoryQueryService _inventoryQueryService;
     private readonly IItemQueryService _itemQueryService;
@@ -43,13 +43,6 @@ public sealed partial class InventoryOnHandViewModel : ObservableObject
     private ObservableCollection<StockOnHandRow> rows = new();
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(SearchCommand))]
-    [NotifyCanExecuteChangedFor(nameof(LoadCommand))]
-    [NotifyCanExecuteChangedFor(nameof(PreviousPageCommand))]
-    [NotifyCanExecuteChangedFor(nameof(NextPageCommand))]
-    private bool isBusy;
-
-    [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(PreviousPageCommand))]
     [NotifyCanExecuteChangedFor(nameof(NextPageCommand))]
     private int page = 1;
@@ -61,30 +54,28 @@ public sealed partial class InventoryOnHandViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(NextPageCommand))]
     private int totalCount;
 
-    [ObservableProperty]
-    private string? statusMessage;
-
     public ObservableCollection<int> PageSizes { get; } = new([20, 50, 100, 200]);
     public ObservableCollection<SortFieldOption> SortFields { get; } =
         new(
         [
-            new SortFieldOption("itemcode", "품목코드"),
-            new SortFieldOption("itemname", "품목명"),
-            new SortFieldOption("qtyonhand", "현재고"),
-            new SortFieldOption("warehousecode", "창고"),
-            new SortFieldOption("locationcode", "로케이션"),
-            new SortFieldOption("updatedatutc", "최종갱신")
+            new SortFieldOption("itemcode", "Item Code"),
+            new SortFieldOption("itemname", "Item Name"),
+            new SortFieldOption("qtyonhand", "On Hand"),
+            new SortFieldOption("warehousecode", "Warehouse"),
+            new SortFieldOption("locationcode", "Location"),
+            new SortFieldOption("updatedatutc", "Updated At")
         ]);
 
     public ObservableCollection<SortDirectionOption> SortDirections { get; } =
         new(
         [
-            new SortDirectionOption("asc", "오름차순"),
-            new SortDirectionOption("desc", "내림차순")
+            new SortDirectionOption("asc", "Ascending"),
+            new SortDirectionOption("desc", "Descending")
         ]);
 
     public bool CanRead { get; }
     public int TotalPages => PageSize <= 0 ? 0 : (int)Math.Ceiling(TotalCount / (double)PageSize);
+    public bool ShowEmptyState => !IsBusy && Rows.Count == 0;
 
     public InventoryOnHandViewModel(
         IInventoryQueryService inventoryQueryService,
@@ -95,6 +86,11 @@ public sealed partial class InventoryOnHandViewModel : ObservableObject
         _itemQueryService = itemQueryService;
         CanRead = currentUserContext.HasPermission(PermissionCodes.InventoryStockRead);
         _ = InitializeAsync();
+    }
+
+    partial void OnRowsChanged(ObservableCollection<StockOnHandRow> value)
+    {
+        OnPropertyChanged(nameof(ShowEmptyState));
     }
 
     private bool CanSearch()
@@ -167,8 +163,8 @@ public sealed partial class InventoryOnHandViewModel : ObservableObject
     {
         try
         {
-            IsBusy = true;
-            StatusMessage = null;
+            ClearUserMessage();
+            SetBusy(true, "Loading inventory filters...");
 
             var warehouseTask = _inventoryQueryService.GetWarehouseOptionsAsync();
             var categoryTask = _itemQueryService.GetItemCategoryOptionsAsync();
@@ -189,11 +185,11 @@ public sealed partial class InventoryOnHandViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            StatusMessage = ex.Message;
+            SetError(ex.Message);
         }
         finally
         {
-            IsBusy = false;
+            SetBusy(false);
         }
 
         await LoadInternalAsync(resetPage: true);
@@ -205,7 +201,7 @@ public sealed partial class InventoryOnHandViewModel : ObservableObject
         {
             Rows = new ObservableCollection<StockOnHandRow>();
             TotalCount = 0;
-            StatusMessage = "조회 권한이 없습니다.";
+            SetError("Read permission is required.");
             return;
         }
 
@@ -213,14 +209,14 @@ public sealed partial class InventoryOnHandViewModel : ObservableObject
         {
             Rows = new ObservableCollection<StockOnHandRow>();
             TotalCount = 0;
-            StatusMessage = "창고를 선택하세요.";
+            SetError("Please select a warehouse.");
             return;
         }
 
         try
         {
-            IsBusy = true;
-            StatusMessage = null;
+            ClearUserMessage();
+            SetBusy(true, "Loading on-hand inventory...");
 
             if (resetPage)
             {
@@ -243,15 +239,29 @@ public sealed partial class InventoryOnHandViewModel : ObservableObject
             TotalCount = result.TotalCount;
             Page = result.Page;
             PageSize = result.PageSize;
+
+            if (Rows.Count == 0)
+            {
+                SetError("No on-hand rows matched the current filter.");
+            }
         }
         catch (Exception ex)
         {
-            StatusMessage = ex.Message;
+            SetError(ex.Message);
         }
         finally
         {
-            IsBusy = false;
+            SetBusy(false);
         }
+    }
+
+    protected override void OnBusyStateChanged(bool isBusy)
+    {
+        SearchCommand.NotifyCanExecuteChanged();
+        LoadCommand.NotifyCanExecuteChanged();
+        PreviousPageCommand.NotifyCanExecuteChanged();
+        NextPageCommand.NotifyCanExecuteChanged();
+        OnPropertyChanged(nameof(ShowEmptyState));
     }
 
     private static StockOnHandRow MapRow(StockOnHandDto dto)
@@ -268,7 +278,7 @@ public sealed partial class InventoryOnHandViewModel : ObservableObject
     public sealed record WarehouseFilterOption(Guid Id, string DisplayName);
     public sealed record CategoryFilterOption(Guid? Id, string DisplayName)
     {
-        public static CategoryFilterOption All { get; } = new(null, "전체");
+        public static CategoryFilterOption All { get; } = new(null, "All");
     }
 
     public sealed record SortFieldOption(string Key, string DisplayName);

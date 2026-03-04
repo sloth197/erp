@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.IO;
 using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -14,7 +14,7 @@ using Erp.Desktop.Services;
 namespace Erp.Desktop.ViewModels;
 
 [RequiredPermission(PermissionCodes.MasterItemsRead)]
-public sealed partial class ItemsViewModel : ObservableObject
+public sealed partial class ItemsViewModel : ViewModelBase
 {
     private readonly IItemQueryService _itemQueryService;
     private readonly IItemCommandService _itemCommandService;
@@ -40,16 +40,6 @@ public sealed partial class ItemsViewModel : ObservableObject
     private ItemRow? selectedItem;
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(LoadCommand))]
-    [NotifyCanExecuteChangedFor(nameof(PreviousPageCommand))]
-    [NotifyCanExecuteChangedFor(nameof(NextPageCommand))]
-    [NotifyCanExecuteChangedFor(nameof(AddItemCommand))]
-    [NotifyCanExecuteChangedFor(nameof(SaveItemCommand))]
-    [NotifyCanExecuteChangedFor(nameof(ToggleActiveCommand))]
-    [NotifyCanExecuteChangedFor(nameof(ExportCsvCommand))]
-    private bool isBusy;
-
-    [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(PreviousPageCommand))]
     [NotifyCanExecuteChangedFor(nameof(NextPageCommand))]
     private int page = 1;
@@ -61,9 +51,6 @@ public sealed partial class ItemsViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(NextPageCommand))]
     private int totalCount;
 
-    [ObservableProperty]
-    private string? statusMessage;
-
     public ObservableCollection<int> PageSizes { get; } = new([20, 50, 100, 200]);
 
     public int TotalPages => PageSize <= 0 ? 0 : (int)Math.Ceiling(TotalCount / (double)PageSize);
@@ -71,6 +58,7 @@ public sealed partial class ItemsViewModel : ObservableObject
     public bool CanWrite { get; }
     public bool CanExport { get; }
     public string ActiveToggleButtonText => SelectedItem?.IsActive == true ? "Deactivate" : "Activate";
+    public bool ShowEmptyState => !IsBusy && Items.Count == 0;
 
     public ItemsViewModel(
         IItemQueryService itemQueryService,
@@ -109,6 +97,11 @@ public sealed partial class ItemsViewModel : ObservableObject
     partial void OnSelectedItemChanged(ItemRow? value)
     {
         OnPropertyChanged(nameof(ActiveToggleButtonText));
+    }
+
+    partial void OnItemsChanged(ObservableCollection<ItemRow> value)
+    {
+        OnPropertyChanged(nameof(ShowEmptyState));
     }
 
     private bool CanLoad()
@@ -185,7 +178,7 @@ public sealed partial class ItemsViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanAddItem))]
     private void AddItem()
     {
-        StatusMessage = "Add flow will be completed in the next step.";
+        SetSuccess("Add flow will be completed in the next step.");
     }
 
     [RelayCommand(CanExecute = nameof(CanSaveItem))]
@@ -198,8 +191,8 @@ public sealed partial class ItemsViewModel : ObservableObject
 
         try
         {
-            IsBusy = true;
-            StatusMessage = null;
+            ClearUserMessage();
+            SetBusy(true, "Saving item...");
 
             await _itemCommandService.UpdateItemAsync(new UpdateItemCommand
             {
@@ -214,15 +207,15 @@ public sealed partial class ItemsViewModel : ObservableObject
             });
 
             await LoadInternalAsync(resetPage: false);
-            StatusMessage = "Item saved.";
+            SetSuccess("Item saved.");
         }
         catch (Exception ex)
         {
-            StatusMessage = ex.Message;
+            SetError(ex.Message);
         }
         finally
         {
-            IsBusy = false;
+            SetBusy(false);
         }
     }
 
@@ -236,8 +229,8 @@ public sealed partial class ItemsViewModel : ObservableObject
 
         try
         {
-            IsBusy = true;
-            StatusMessage = null;
+            ClearUserMessage();
+            SetBusy(true, "Updating item status...");
 
             if (SelectedItem.IsActive)
             {
@@ -255,15 +248,15 @@ public sealed partial class ItemsViewModel : ObservableObject
             }
 
             await LoadInternalAsync(resetPage: false);
-            StatusMessage = "Item status updated.";
+            SetSuccess("Item status updated.");
         }
         catch (Exception ex)
         {
-            StatusMessage = ex.Message;
+            SetError(ex.Message);
         }
         finally
         {
-            IsBusy = false;
+            SetBusy(false);
         }
     }
 
@@ -272,20 +265,20 @@ public sealed partial class ItemsViewModel : ObservableObject
     {
         if (!CanRead)
         {
-            StatusMessage = "Read permission is required.";
+            SetError("Read permission is required.");
             return;
         }
 
         if (!CanExport)
         {
-            StatusMessage = "Export permission is required.";
+            SetError("Export permission is required.");
             return;
         }
 
         try
         {
-            IsBusy = true;
-            StatusMessage = null;
+            ClearUserMessage();
+            SetBusy(true, "Exporting CSV...");
 
             var exportQuery = new ExportItemsQuery
             {
@@ -299,29 +292,29 @@ public sealed partial class ItemsViewModel : ObservableObject
             var rows = await _itemQueryService.ExportItemsAsync(exportQuery);
             if (rows.Count == 0)
             {
-                StatusMessage = "No rows matched the current filter.";
+                SetError("No rows matched the current filter.");
                 return;
             }
 
             var filePath = _fileSaveDialogService.ShowCsvSaveDialog($"items_{DateTime.Now:yyyyMMdd_HHmmss}.csv");
             if (string.IsNullOrWhiteSpace(filePath))
             {
-                StatusMessage = "CSV export cancelled.";
+                SetError("CSV export cancelled.");
                 return;
             }
 
             var csvContent = _itemCsvExportService.BuildCsv(rows);
             await File.WriteAllTextAsync(filePath, csvContent, new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
 
-            StatusMessage = $"CSV exported: {rows.Count:N0} rows.";
+            SetSuccess($"CSV exported: {rows.Count:N0} rows.");
         }
         catch (Exception ex)
         {
-            StatusMessage = ex.Message;
+            SetError(ex.Message);
         }
         finally
         {
-            IsBusy = false;
+            SetBusy(false);
         }
     }
 
@@ -368,14 +361,14 @@ public sealed partial class ItemsViewModel : ObservableObject
         {
             Items = new ObservableCollection<ItemRow>();
             TotalCount = 0;
-            StatusMessage = "Read permission is required.";
+            SetError("Read permission is required.");
             return;
         }
 
         try
         {
-            IsBusy = true;
-            StatusMessage = null;
+            ClearUserMessage();
+            SetBusy(true, "Loading items...");
 
             if (resetPage)
             {
@@ -405,14 +398,19 @@ public sealed partial class ItemsViewModel : ObservableObject
             {
                 SelectedItem = Items.FirstOrDefault(x => x.Id == SelectedItem.Id);
             }
+
+            if (Items.Count == 0)
+            {
+                SetError("No rows matched the current filter.");
+            }
         }
         catch (Exception ex)
         {
-            StatusMessage = ex.Message;
+            SetError(ex.Message);
         }
         finally
         {
-            IsBusy = false;
+            SetBusy(false);
         }
     }
 
@@ -433,6 +431,19 @@ public sealed partial class ItemsViewModel : ObservableObject
         categoryOptions.AddRange(options);
         Categories = new ObservableCollection<ItemCategoryFilterOption>(categoryOptions);
         _categoriesLoaded = true;
+    }
+
+    protected override void OnBusyStateChanged(bool isBusy)
+    {
+        LoadCommand.NotifyCanExecuteChanged();
+        SearchCommand.NotifyCanExecuteChanged();
+        PreviousPageCommand.NotifyCanExecuteChanged();
+        NextPageCommand.NotifyCanExecuteChanged();
+        AddItemCommand.NotifyCanExecuteChanged();
+        SaveItemCommand.NotifyCanExecuteChanged();
+        ToggleActiveCommand.NotifyCanExecuteChanged();
+        ExportCsvCommand.NotifyCanExecuteChanged();
+        OnPropertyChanged(nameof(ShowEmptyState));
     }
 
     private static ItemRow MapRow(Erp.Application.DTOs.ItemListDto dto)

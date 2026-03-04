@@ -1,10 +1,7 @@
-<UserControl x:Class="Erp.Desktop.Views.InventoryOnHandView"
+﻿<UserControl x:Class="Erp.Desktop.Views.InventoryOnHandView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <UserControl.Resources>
-        <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
-    </UserControl.Resources>
-
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:Erp.Desktop.Controls">
     <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -13,7 +10,7 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <TextBlock Text="재고조회(현재고)" FontSize="22" FontWeight="SemiBold" />
+        <TextBlock Text="Inventory On-hand" FontSize="22" FontWeight="SemiBold" />
 
         <Border Grid.Row="1"
                 Margin="0,12,0,10"
@@ -32,31 +29,31 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                    <TextBlock Text="창고(필수)" Margin="0,0,0,4" />
+                    <TextBlock Text="Warehouse (required)" Margin="0,0,0,4" />
                     <ComboBox ItemsSource="{Binding Warehouses}"
                               SelectedItem="{Binding SelectedWarehouse}"
                               DisplayMemberPath="DisplayName" />
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Margin="0,0,10,0">
-                    <TextBlock Text="키워드" Margin="0,0,0,4" />
+                    <TextBlock Text="Keyword" Margin="0,0,0,4" />
                     <TextBox Text="{Binding Keyword, UpdateSourceTrigger=PropertyChanged}" />
                 </StackPanel>
 
                 <StackPanel Grid.Column="2" Margin="0,0,10,0">
-                    <TextBlock Text="카테고리" Margin="0,0,0,4" />
+                    <TextBlock Text="Category" Margin="0,0,0,4" />
                     <ComboBox ItemsSource="{Binding Categories}"
                               SelectedItem="{Binding SelectedCategory}"
                               DisplayMemberPath="DisplayName" />
                 </StackPanel>
 
                 <StackPanel Grid.Column="3" Margin="0,18,10,0" VerticalAlignment="Top">
-                    <CheckBox Content="로케이션별 보기"
+                    <CheckBox Content="Include Locations"
                               IsChecked="{Binding IncludeLocations}" />
                 </StackPanel>
 
                 <Button Grid.Column="4"
-                        Content="검색"
+                        Content="Search"
                         Width="84"
                         Height="30"
                         Margin="0,18,8,0"
@@ -64,7 +61,7 @@
                         Command="{Binding SearchCommand}" />
 
                 <Button Grid.Column="5"
-                        Content="새로고침"
+                        Content="Reload"
                         Width="84"
                         Height="30"
                         Margin="0,18,0,0"
@@ -83,10 +80,10 @@
                 <TextBlock DockPanel.Dock="Left"
                            VerticalAlignment="Center"
                            Foreground="#667085"
-                           Text="{Binding TotalCount, StringFormat=총 {0:N0}건}" />
+                           Text="{Binding TotalCount, StringFormat=Total {0:N0} rows}" />
 
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="정렬" Margin="0,0,6,0" VerticalAlignment="Center" />
+                    <TextBlock Text="Sort" Margin="0,0,6,0" VerticalAlignment="Center" />
                     <ComboBox Width="110"
                               ItemsSource="{Binding SortFields}"
                               DisplayMemberPath="DisplayName"
@@ -99,12 +96,12 @@
                               SelectedValuePath="Key"
                               SelectedValue="{Binding SelectedSortDirection}" />
 
-                    <TextBlock Text="페이지 크기" Margin="14,0,6,0" VerticalAlignment="Center" />
+                    <TextBlock Text="Page size" Margin="14,0,6,0" VerticalAlignment="Center" />
                     <ComboBox Width="70"
                               ItemsSource="{Binding PageSizes}"
                               SelectedItem="{Binding PageSize}" />
 
-                    <Button Content="이전"
+                    <Button Content="Prev"
                             Width="56"
                             Margin="10,0,0,0"
                             Command="{Binding PreviousPageCommand}" />
@@ -114,45 +111,61 @@
                     <TextBlock Margin="0,0,8,0"
                                VerticalAlignment="Center"
                                Text="{Binding TotalPages}" />
-                    <Button Content="다음"
+                    <Button Content="Next"
                             Width="56"
                             Command="{Binding NextPageCommand}" />
                 </StackPanel>
             </DockPanel>
 
-            <DataGrid Grid.Row="1"
-                      ItemsSource="{Binding Rows}"
-                      AutoGenerateColumns="False"
-                      IsReadOnly="True"
-                      EnableRowVirtualization="True"
-                      EnableColumnVirtualization="True"
-                      VirtualizingPanel.IsVirtualizing="True"
-                      VirtualizingPanel.ScrollUnit="Pixel"
-                      ScrollViewer.CanContentScroll="True">
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="ItemCode" Binding="{Binding ItemCode}" Width="150" />
-                    <DataGridTextColumn Header="Name" Binding="{Binding ItemName}" Width="2*" />
-                    <DataGridTextColumn Header="QtyOnHand" Binding="{Binding QtyOnHand, StringFormat={}{0:N4}}" Width="130" />
-                    <DataGridTextColumn Header="Warehouse" Binding="{Binding WarehouseCode}" Width="120" />
-                    <DataGridTextColumn Header="Location" Binding="{Binding LocationCode}" Width="120" />
-                    <DataGridTextColumn Header="UpdatedAt" Binding="{Binding UpdatedAtUtc, StringFormat=yyyy-MM-dd HH:mm:ss}" Width="170" />
-                </DataGrid.Columns>
-            </DataGrid>
+            <Grid Grid.Row="1">
+                <DataGrid ItemsSource="{Binding Rows}"
+                          AutoGenerateColumns="False"
+                          IsReadOnly="True"
+                          EnableRowVirtualization="True"
+                          EnableColumnVirtualization="True"
+                          VirtualizingPanel.IsVirtualizing="True"
+                          VirtualizingPanel.ScrollUnit="Pixel"
+                          ScrollViewer.CanContentScroll="True">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="ItemCode" Binding="{Binding ItemCode}" Width="150" />
+                        <DataGridTextColumn Header="Name" Binding="{Binding ItemName}" Width="2*" />
+                        <DataGridTextColumn Header="QtyOnHand" Binding="{Binding QtyOnHand, StringFormat={}{0:N4}}" Width="130" />
+                        <DataGridTextColumn Header="Warehouse" Binding="{Binding WarehouseCode}" Width="120" />
+                        <DataGridTextColumn Header="Location" Binding="{Binding LocationCode}" Width="120" />
+                        <DataGridTextColumn Header="UpdatedAt" Binding="{Binding UpdatedAtUtc, StringFormat=yyyy-MM-dd HH:mm:ss}" Width="170" />
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <controls:EmptyState Title="No Inventory Rows"
+                                     Description="No stock rows matched the current filter."
+                                     HorizontalAlignment="Center"
+                                     VerticalAlignment="Center">
+                    <controls:EmptyState.Style>
+                        <Style TargetType="controls:EmptyState">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <MultiDataTrigger>
+                                    <MultiDataTrigger.Conditions>
+                                        <Condition Binding="{Binding IsBusy}" Value="False" />
+                                        <Condition Binding="{Binding Rows.Count}" Value="0" />
+                                    </MultiDataTrigger.Conditions>
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </MultiDataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </controls:EmptyState.Style>
+                </controls:EmptyState>
+            </Grid>
         </Grid>
 
-        <TextBlock Grid.Row="3"
-                   Margin="0,10,0,0"
-                   Foreground="#B00020"
-                   Text="{Binding StatusMessage}"
-                   TextWrapping="Wrap" />
+        <controls:MessageBar Grid.Row="3"
+                             Margin="0,10,0,0"
+                             Message="{Binding UserMessage.Text}"
+                             Kind="{Binding UserMessage.Kind}"
+                             IsOpen="{Binding HasUserMessage}" />
 
-        <Border Grid.RowSpan="4"
-                Background="#70FFFFFF"
-                Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}">
-            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                <ProgressBar Width="220" Height="10" IsIndeterminate="True" />
-                <TextBlock Margin="0,10,0,0" Text="현재고 조회 중..." />
-            </StackPanel>
-        </Border>
+        <controls:BusyOverlay Grid.RowSpan="4"
+                              IsBusy="{Binding IsBusy}"
+                              Message="{Binding BusyMessage}" />
     </Grid>
 </UserControl>

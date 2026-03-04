@@ -1,0 +1,28 @@
+<UserControl x:Class="Erp.Desktop.Controls.ValidationSummary"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Name="Root">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+    </UserControl.Resources>
+
+    <Border Padding="10"
+            CornerRadius="6"
+            BorderThickness="1"
+            Background="#FFF7ED"
+            BorderBrush="#FDBA74"
+            Visibility="{Binding HasErrors, ElementName=Root, Converter={StaticResource BoolToVisibility}}">
+        <StackPanel>
+            <TextBlock Text="Please check these fields:" FontWeight="SemiBold" />
+            <ItemsControl ItemsSource="{Binding Errors, ElementName=Root}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Margin="0,6,0,0"
+                                   Foreground="#B54708"
+                                   Text="{Binding}" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </Border>
+</UserControl>

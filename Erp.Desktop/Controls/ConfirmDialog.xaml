@@ -1,0 +1,38 @@
+<UserControl x:Class="Erp.Desktop.Controls.ConfirmDialog"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Name="Root">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+    </UserControl.Resources>
+
+    <Grid Visibility="{Binding IsOpen, ElementName=Root, Converter={StaticResource BoolToVisibility}}">
+        <Border Background="#70000000" />
+        <Border Width="360"
+                Padding="18"
+                CornerRadius="8"
+                BorderThickness="1"
+                BorderBrush="#D0D7E2"
+                Background="White"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+            <StackPanel>
+                <TextBlock Text="{Binding Title, ElementName=Root}"
+                           FontSize="18"
+                           FontWeight="SemiBold" />
+                <TextBlock Margin="0,10,0,0"
+                           TextWrapping="Wrap"
+                           Text="{Binding Message, ElementName=Root}" />
+                <StackPanel Margin="0,16,0,0" Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Content="{Binding CancelText, ElementName=Root}"
+                            Width="86"
+                            Margin="0,0,8,0"
+                            Command="{Binding CancelCommand, ElementName=Root}" />
+                    <Button Content="{Binding ConfirmText, ElementName=Root}"
+                            Width="86"
+                            Command="{Binding ConfirmCommand, ElementName=Root}" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>
