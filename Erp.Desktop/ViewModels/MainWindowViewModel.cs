@@ -112,9 +112,10 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
         AddGroup(
             "재고(Inventory)",
-            new MenuEntry("재고조회", PermissionCodes.InventoryStockRead, () => _navigationService.NavigateTo<InventoryStockViewModel>()),
-            new MenuEntry("입출고", PermissionCodes.InventoryStockWrite, () => _navigationService.NavigateTo<InventoryInOutViewModel>()),
-            new MenuEntry("재고조정", PermissionCodes.InventoryStockWrite, () => _navigationService.NavigateTo<InventoryAdjustmentViewModel>()));
+            new MenuEntry("재고조회", PermissionCodes.InventoryStockRead, () => _navigationService.NavigateTo<InventoryOnHandViewModel>()),
+            new MenuEntry("입고 등록", PermissionCodes.InventoryStockWrite, () => _navigationService.NavigateTo<StockReceiptViewModel>()),
+            new MenuEntry("출고 등록", PermissionCodes.InventoryStockWrite, () => _navigationService.NavigateTo<StockIssueViewModel>()),
+            new MenuEntry("재고조정", PermissionCodes.InventoryStockWrite, () => _navigationService.NavigateTo<StockAdjustViewModel>()));
 
         AddGroup(
             "구매/매입(Purchase)",
@@ -133,6 +134,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
         AddGroup(
             "시스템(System)",
+            new MenuEntry("코드 보기", null, () => _navigationService.NavigateTo<CodeExplorerViewModel>()),
             new MenuEntry("환경설정(Settings)", PermissionCodes.SystemSettingsRead, () => _navigationService.NavigateTo<SettingsViewModel>()),
             new MenuEntry("감사로그(Audit Log)", PermissionCodes.AuditRead, () => _navigationService.NavigateTo<AuditLogViewModel>()));
     }

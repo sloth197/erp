@@ -32,6 +32,7 @@ public partial class App : System.Windows.Application
                 services.AddSingleton<IUserMessageService, UserMessageService>();
                 services.AddSingleton<IFileSaveDialogService, FileSaveDialogService>();
                 services.AddSingleton<IItemCsvExportService, ItemCsvExportService>();
+                services.AddSingleton<ICodeExplorerService, CodeExplorerService>();
 
                 services.AddSingleton<Navigation.INavigationService, Navigation.NavigationService>();
 
@@ -46,11 +47,13 @@ public partial class App : System.Windows.Application
                 services.AddTransient<ViewModels.NoticesViewModel>();
                 services.AddTransient<ViewModels.PartnersViewModel>();
                 services.AddTransient<ViewModels.ItemsViewModel>();
+                services.AddTransient<ViewModels.CodeExplorerViewModel>();
                 services.AddTransient<ViewModels.WarehousesViewModel>();
                 services.AddTransient<ViewModels.CodesViewModel>();
-                services.AddTransient<ViewModels.InventoryStockViewModel>();
-                services.AddTransient<ViewModels.InventoryInOutViewModel>();
-                services.AddTransient<ViewModels.InventoryAdjustmentViewModel>();
+                services.AddTransient<ViewModels.InventoryOnHandViewModel>();
+                services.AddTransient<ViewModels.StockReceiptViewModel>();
+                services.AddTransient<ViewModels.StockIssueViewModel>();
+                services.AddTransient<ViewModels.StockAdjustViewModel>();
                 services.AddTransient<ViewModels.PurchaseOrdersViewModel>();
                 services.AddTransient<ViewModels.PurchaseReceiptViewModel>();
                 services.AddTransient<ViewModels.SalesOrdersViewModel>();

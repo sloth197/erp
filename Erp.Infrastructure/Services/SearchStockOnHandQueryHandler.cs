@@ -13,16 +13,145 @@ public sealed class SearchStockOnHandQueryHandler : IInventoryQueryService
     private const int DefaultPage = 1;
     private const int DefaultPageSize = 50;
     private const int MaxPageSize = 500;
+    private const int MaxItemOptionTake = 200;
 
     private readonly IDbContextFactory<ErpDbContext> _dbContextFactory;
     private readonly IAccessControl _accessControl;
+    private readonly ICurrentUserContext _currentUserContext;
 
     public SearchStockOnHandQueryHandler(
         IDbContextFactory<ErpDbContext> dbContextFactory,
-        IAccessControl accessControl)
+        IAccessControl accessControl,
+        ICurrentUserContext currentUserContext)
     {
         _dbContextFactory = dbContextFactory;
         _accessControl = accessControl;
+        _currentUserContext = currentUserContext;
+    }
+
+    public async Task<IReadOnlyList<WarehouseOptionDto>> GetWarehouseOptionsAsync(
+        bool activeOnly = true,
+        CancellationToken cancellationToken = default)
+    {
+        DemandInventoryLookupPermission();
+
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var query = db.Warehouses.AsNoTracking();
+        if (activeOnly)
+        {
+            query = query.Where(x => x.IsActive);
+        }
+
+        return await query
+            .OrderBy(x => x.Code)
+            .Select(x => new WarehouseOptionDto(x.Id, x.Code, x.Name, x.IsActive))
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<LocationOptionDto>> GetLocationOptionsAsync(
+        Guid warehouseId,
+        bool activeOnly = true,
+        CancellationToken cancellationToken = default)
+    {
+        DemandInventoryLookupPermission();
+
+        if (warehouseId == Guid.Empty)
+        {
+            return Array.Empty<LocationOptionDto>();
+        }
+
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var query = db.Locations
+            .AsNoTracking()
+            .Where(x => x.WarehouseId == warehouseId);
+
+        if (activeOnly)
+        {
+            query = query.Where(x => x.IsActive);
+        }
+
+        return await query
+            .OrderBy(x => x.Code)
+            .Select(x => new LocationOptionDto(x.Id, x.WarehouseId, x.Code, x.Name, x.IsActive))
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<InventoryItemOptionDto>> SearchItemOptionsAsync(
+        string? keyword,
+        int take = 30,
+        bool activeOnly = true,
+        CancellationToken cancellationToken = default)
+    {
+        DemandInventoryLookupPermission();
+
+        var normalizedTake = take < 1 ? 30 : Math.Min(take, MaxItemOptionTake);
+        var normalizedKeyword = keyword?.Trim();
+
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var query = db.Items.AsNoTracking();
+        if (activeOnly)
+        {
+            query = query.Where(x => x.IsActive);
+        }
+
+        if (!string.IsNullOrWhiteSpace(normalizedKeyword))
+        {
+            query = query.Where(x =>
+                x.ItemCode.Contains(normalizedKeyword) ||
+                x.Name.Contains(normalizedKeyword) ||
+                (x.Barcode != null && x.Barcode.Contains(normalizedKeyword)));
+        }
+
+        return await query
+            .OrderBy(x => x.ItemCode)
+            .Take(normalizedTake)
+            .Select(x => new InventoryItemOptionDto(
+                x.Id,
+                x.ItemCode,
+                x.Name,
+                x.TrackingType,
+                x.IsActive))
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<StockBalanceLookupDto>> GetOnHandByItemsAsync(
+        Guid warehouseId,
+        Guid? locationId,
+        IReadOnlyCollection<Guid> itemIds,
+        CancellationToken cancellationToken = default)
+    {
+        DemandInventoryLookupPermission();
+
+        if (warehouseId == Guid.Empty || itemIds.Count == 0)
+        {
+            return Array.Empty<StockBalanceLookupDto>();
+        }
+
+        var normalizedItemIds = itemIds
+            .Where(x => x != Guid.Empty)
+            .Distinct()
+            .ToArray();
+
+        if (normalizedItemIds.Length == 0)
+        {
+            return Array.Empty<StockBalanceLookupDto>();
+        }
+
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var query = db.InventoryBalances
+            .AsNoTracking()
+            .Where(x =>
+                x.WarehouseId == warehouseId &&
+                x.LocationId == locationId &&
+                normalizedItemIds.Contains(x.ItemId));
+
+        return await query
+            .GroupBy(x => new { x.ItemId, x.Item.ItemCode })
+            .Select(g => new StockBalanceLookupDto(
+                g.Key.ItemId,
+                g.Key.ItemCode,
+                g.Sum(x => x.QtyOnHand)))
+            .ToListAsync(cancellationToken);
     }
 
     public async Task<PagedResult<StockOnHandDto>> SearchStockOnHandAsync(
@@ -187,6 +316,18 @@ public sealed class SearchStockOnHandQueryHandler : IInventoryQueryService
         }
 
         return (normalized, descending);
+    }
+
+    private void DemandInventoryLookupPermission()
+    {
+        if (_currentUserContext.HasPermission(PermissionCodes.InventoryStockRead) ||
+            _currentUserContext.HasPermission(PermissionCodes.InventoryStockWrite) ||
+            _currentUserContext.HasPermission(PermissionCodes.InventoryStockAdjust))
+        {
+            return;
+        }
+
+        _accessControl.DemandPermission(PermissionCodes.InventoryStockRead);
     }
 
     private sealed class StockOnHandProjection

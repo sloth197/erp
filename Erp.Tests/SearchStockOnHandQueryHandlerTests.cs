@@ -17,7 +17,10 @@ public sealed class SearchStockOnHandQueryHandlerTests
     {
         var (factory, fixture) = await BuildFixtureAsync();
         var accessControl = new RecordingAccessControl();
-        var handler = new SearchStockOnHandQueryHandler(factory, accessControl);
+        var handler = new SearchStockOnHandQueryHandler(
+            factory,
+            accessControl,
+            new FakeCurrentUserContext(PermissionCodes.InventoryStockRead));
 
         var result = await handler.SearchStockOnHandAsync(new SearchStockOnHandQuery
         {
@@ -41,7 +44,10 @@ public sealed class SearchStockOnHandQueryHandlerTests
     public async Task SearchStockOnHandAsync_AggregatesRows_WhenIncludeLocationsFalse()
     {
         var (factory, fixture) = await BuildFixtureAsync();
-        var handler = new SearchStockOnHandQueryHandler(factory, new RecordingAccessControl());
+        var handler = new SearchStockOnHandQueryHandler(
+            factory,
+            new RecordingAccessControl(),
+            new FakeCurrentUserContext(PermissionCodes.InventoryStockRead));
 
         var result = await handler.SearchStockOnHandAsync(new SearchStockOnHandQuery
         {
@@ -65,7 +71,10 @@ public sealed class SearchStockOnHandQueryHandlerTests
     public async Task SearchStockOnHandAsync_ThrowsForbidden_WhenPermissionDenied()
     {
         var (factory, _) = await BuildFixtureAsync();
-        var handler = new SearchStockOnHandQueryHandler(factory, new DenyAccessControl());
+        var handler = new SearchStockOnHandQueryHandler(
+            factory,
+            new DenyAccessControl(),
+            new FakeCurrentUserContext());
 
         await Assert.ThrowsAsync<ForbiddenException>(() => handler.SearchStockOnHandAsync(new SearchStockOnHandQuery()));
     }
@@ -104,7 +113,8 @@ public sealed class SearchStockOnHandQueryHandlerTests
 
         var handler = new SearchStockOnHandQueryHandler(
             new TestDbContextFactory(options),
-            new RecordingAccessControl());
+            new RecordingAccessControl(),
+            new FakeCurrentUserContext(PermissionCodes.InventoryStockRead));
 
         var stopwatch = Stopwatch.StartNew();
         var result = await handler.SearchStockOnHandAsync(new SearchStockOnHandQuery
@@ -206,6 +216,32 @@ public sealed class SearchStockOnHandQueryHandlerTests
         public void DemandPermission(string permissionCode)
         {
             throw new ForbiddenException($"Permission '{permissionCode}' is required.");
+        }
+    }
+
+    private sealed class FakeCurrentUserContext : ICurrentUserContext
+    {
+        private readonly HashSet<string> _permissions;
+
+        public FakeCurrentUserContext(params string[] permissions)
+        {
+            _permissions = new HashSet<string>(permissions, StringComparer.OrdinalIgnoreCase);
+        }
+
+        public Guid? CurrentUserId { get; } = Guid.NewGuid();
+        public string? Username { get; } = "tester";
+        public bool IsAuthenticated => true;
+        public IReadOnlyCollection<string> PermissionCodes => _permissions;
+
+        public event EventHandler? Changed
+        {
+            add { }
+            remove { }
+        }
+
+        public bool HasPermission(string permissionCode)
+        {
+            return _permissions.Contains(permissionCode);
         }
     }
 }

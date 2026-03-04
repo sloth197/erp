@@ -29,6 +29,26 @@
                 <views:ItemsView />
             </DataTemplate>
 
+            <DataTemplate DataType="{x:Type vms:InventoryOnHandViewModel}">
+                <views:InventoryOnHandView />
+            </DataTemplate>
+
+            <DataTemplate DataType="{x:Type vms:StockReceiptViewModel}">
+                <views:StockReceiptView />
+            </DataTemplate>
+
+            <DataTemplate DataType="{x:Type vms:StockIssueViewModel}">
+                <views:StockIssueView />
+            </DataTemplate>
+
+            <DataTemplate DataType="{x:Type vms:StockAdjustViewModel}">
+                <views:StockAdjustView />
+            </DataTemplate>
+
+            <DataTemplate DataType="{x:Type vms:CodeExplorerViewModel}">
+                <views:CodeExplorerView />
+            </DataTemplate>
+
             <DataTemplate DataType="{x:Type vms:PlaceholderPageViewModel}">
                 <views:PlaceholderView />
             </DataTemplate>
