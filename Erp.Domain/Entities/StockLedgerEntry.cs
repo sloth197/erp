@@ -11,6 +11,10 @@ public sealed class StockLedgerEntry
     public Warehouse Warehouse { get; private set; } = null!;
     public Guid? LocationId { get; private set; }
     public Location? Location { get; private set; }
+    public Guid? LotId { get; private set; }
+    public StockLot? Lot { get; private set; }
+    public string? SerialNo { get; private set; }
+    public DateTime? ExpiryDate { get; private set; }
     public decimal Qty { get; private set; }
     public decimal? UnitCost { get; private set; }
     public DateTime OccurredAtUtc { get; private set; }
@@ -33,6 +37,9 @@ public sealed class StockLedgerEntry
         decimal qty,
         DateTime occurredAtUtc,
         Guid? locationId = null,
+        Guid? lotId = null,
+        string? serialNo = null,
+        DateTime? expiryDate = null,
         decimal? unitCost = null,
         StockReferenceType? referenceType = null,
         Guid? referenceId = null,
@@ -70,6 +77,9 @@ public sealed class StockLedgerEntry
         ItemId = itemId;
         WarehouseId = warehouseId;
         LocationId = NormalizeLocationId(locationId);
+        LotId = NormalizeOptionalGuid(lotId);
+        SerialNo = string.IsNullOrWhiteSpace(serialNo) ? null : serialNo.Trim();
+        ExpiryDate = NormalizeDate(expiryDate);
         Qty = qty;
         UnitCost = unitCost;
         OccurredAtUtc = occurredAtUtc.Kind == DateTimeKind.Utc ? occurredAtUtc : occurredAtUtc.ToUniversalTime();
@@ -98,5 +108,22 @@ public sealed class StockLedgerEntry
         }
 
         return value.Value;
+    }
+
+    private static DateTime? NormalizeDate(DateTime? value)
+    {
+        if (!value.HasValue)
+        {
+            return null;
+        }
+
+        var normalized = value.Value.Kind switch
+        {
+            DateTimeKind.Utc => value.Value,
+            DateTimeKind.Unspecified => DateTime.SpecifyKind(value.Value, DateTimeKind.Utc),
+            _ => value.Value.ToUniversalTime()
+        };
+
+        return normalized.Date;
     }
 }

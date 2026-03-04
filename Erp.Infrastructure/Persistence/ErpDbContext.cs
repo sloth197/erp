@@ -16,6 +16,7 @@ public sealed class ErpDbContext : DbContext
     public DbSet<Warehouse> Warehouses => Set<Warehouse>();
     public DbSet<Location> Locations => Set<Location>();
     public DbSet<InventoryBalance> InventoryBalances => Set<InventoryBalance>();
+    public DbSet<StockLot> StockLots => Set<StockLot>();
     public DbSet<StockLedgerEntry> StockLedgerEntries => Set<StockLedgerEntry>();
     public DbSet<User> Users => Set<User>();
     public DbSet<Role> Roles => Set<Role>();
@@ -35,6 +36,7 @@ public sealed class ErpDbContext : DbContext
         ConfigureWarehouses(modelBuilder);
         ConfigureLocations(modelBuilder);
         ConfigureInventoryBalances(modelBuilder);
+        ConfigureStockLots(modelBuilder);
         ConfigureStockLedgerEntries(modelBuilder);
         ConfigureUsers(modelBuilder);
         ConfigureRoles(modelBuilder);
@@ -363,6 +365,40 @@ public sealed class ErpDbContext : DbContext
             .OnDelete(DeleteBehavior.Restrict);
     }
 
+    private static void ConfigureStockLots(ModelBuilder modelBuilder)
+    {
+        var lot = modelBuilder.Entity<StockLot>();
+        lot.ToTable("stock_lots");
+        lot.HasKey(x => x.Id);
+
+        lot.Property(x => x.Id)
+            .HasColumnName("id");
+
+        lot.Property(x => x.ItemId)
+            .HasColumnName("item_id")
+            .IsRequired();
+
+        lot.Property(x => x.LotNo)
+            .HasColumnName("lot_no")
+            .HasMaxLength(100)
+            .IsRequired();
+
+        lot.Property(x => x.ExpiryDate)
+            .HasColumnName("expiry_date");
+
+        lot.Property(x => x.CreatedAtUtc)
+            .HasColumnName("created_at_utc")
+            .IsRequired();
+
+        lot.HasIndex(x => new { x.ItemId, x.LotNo })
+            .IsUnique();
+
+        lot.HasOne(x => x.Item)
+            .WithMany()
+            .HasForeignKey(x => x.ItemId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+
     private static void ConfigureStockLedgerEntries(ModelBuilder modelBuilder)
     {
         var ledger = modelBuilder.Entity<StockLedgerEntry>();
@@ -393,6 +429,16 @@ public sealed class ErpDbContext : DbContext
 
         ledger.Property(x => x.LocationId)
             .HasColumnName("location_id");
+
+        ledger.Property(x => x.LotId)
+            .HasColumnName("lot_id");
+
+        ledger.Property(x => x.SerialNo)
+            .HasColumnName("serial_no")
+            .HasMaxLength(120);
+
+        ledger.Property(x => x.ExpiryDate)
+            .HasColumnName("expiry_date");
 
         ledger.Property(x => x.Qty)
             .HasColumnName("qty")
@@ -429,6 +475,8 @@ public sealed class ErpDbContext : DbContext
         ledger.HasIndex(x => x.TxNo)
             .IsUnique();
         ledger.HasIndex(x => x.OccurredAtUtc);
+        ledger.HasIndex(x => x.LotId);
+        ledger.HasIndex(x => x.SerialNo);
 
         ledger.HasOne(x => x.Item)
             .WithMany()
@@ -444,6 +492,11 @@ public sealed class ErpDbContext : DbContext
             .WithMany(x => x.StockLedgerEntries)
             .HasForeignKey(x => x.LocationId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        ledger.HasOne(x => x.Lot)
+            .WithMany()
+            .HasForeignKey(x => x.LotId)
+            .OnDelete(DeleteBehavior.SetNull);
 
         ledger.HasOne(x => x.ActorUser)
             .WithMany()

@@ -13,5 +13,7 @@ public sealed class IssueStockLineCommand
 {
     public Guid ItemId { get; init; }
     public decimal Qty { get; init; }
+    public string? LotNo { get; init; }
+    public string? SerialNo { get; init; }
     public string? Note { get; init; }
 }

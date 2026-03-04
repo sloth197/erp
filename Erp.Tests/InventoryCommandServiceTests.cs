@@ -163,6 +163,123 @@ public sealed class InventoryCommandServiceTests
     }
 
     [Fact]
+    public async Task ReceiveStockAsync_RequiresLot_ForLotTrackedItem()
+    {
+        var (factory, fixture) = await BuildFixtureAsync(seedBalanceQty: null, trackingType: TrackingType.Lot);
+        var service = new InventoryCommandService(factory, new RecordingAccessControl(), new FakeCurrentUserContext());
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.ReceiveStockAsync(new ReceiveStockCommand
+        {
+            WarehouseId = fixture.WarehouseId,
+            LocationId = fixture.LocationId,
+            Lines = [new ReceiveStockLineCommand { ItemId = fixture.ItemId, Qty = 2m }]
+        }));
+
+        Assert.Contains("LotNo is required", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task ReceiveStockAsync_RequiresSerial_ForSerialTrackedItem()
+    {
+        var (factory, fixture) = await BuildFixtureAsync(seedBalanceQty: null, trackingType: TrackingType.Serial);
+        var service = new InventoryCommandService(factory, new RecordingAccessControl(), new FakeCurrentUserContext());
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.ReceiveStockAsync(new ReceiveStockCommand
+        {
+            WarehouseId = fixture.WarehouseId,
+            LocationId = fixture.LocationId,
+            Lines = [new ReceiveStockLineCommand { ItemId = fixture.ItemId, Qty = 1m }]
+        }));
+
+        Assert.Contains("SerialNo is required", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task ReceiveStockAsync_RequiresExpiry_ForExpiryTrackedItem()
+    {
+        var (factory, fixture) = await BuildFixtureAsync(seedBalanceQty: null, trackingType: TrackingType.Expiry);
+        var service = new InventoryCommandService(factory, new RecordingAccessControl(), new FakeCurrentUserContext());
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.ReceiveStockAsync(new ReceiveStockCommand
+        {
+            WarehouseId = fixture.WarehouseId,
+            LocationId = fixture.LocationId,
+            Lines = [new ReceiveStockLineCommand { ItemId = fixture.ItemId, Qty = 1m, LotNo = "LOT-1" }]
+        }));
+
+        Assert.Contains("ExpiryDate is required", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task IssueStockAsync_RequiresLot_ForLotTrackedItem()
+    {
+        var (factory, fixture) = await BuildFixtureAsync(seedBalanceQty: null, trackingType: TrackingType.Lot);
+        var service = new InventoryCommandService(factory, new RecordingAccessControl(), new FakeCurrentUserContext());
+
+        await service.ReceiveStockAsync(new ReceiveStockCommand
+        {
+            WarehouseId = fixture.WarehouseId,
+            LocationId = fixture.LocationId,
+            Lines = [new ReceiveStockLineCommand { ItemId = fixture.ItemId, Qty = 3m, LotNo = "LOT-A" }]
+        });
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.IssueStockAsync(new IssueStockCommand
+        {
+            WarehouseId = fixture.WarehouseId,
+            LocationId = fixture.LocationId,
+            Lines = [new IssueStockLineCommand { ItemId = fixture.ItemId, Qty = 1m }]
+        }));
+
+        Assert.Contains("LotNo is required", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task IssueStockAsync_Fails_WhenLotOnHandIsInsufficient()
+    {
+        var (factory, fixture) = await BuildFixtureAsync(seedBalanceQty: null, trackingType: TrackingType.Lot);
+        var service = new InventoryCommandService(factory, new RecordingAccessControl(), new FakeCurrentUserContext());
+
+        await service.ReceiveStockAsync(new ReceiveStockCommand
+        {
+            WarehouseId = fixture.WarehouseId,
+            LocationId = fixture.LocationId,
+            Lines = [new ReceiveStockLineCommand { ItemId = fixture.ItemId, Qty = 2m, LotNo = "LOT-Z" }]
+        });
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.IssueStockAsync(new IssueStockCommand
+        {
+            WarehouseId = fixture.WarehouseId,
+            LocationId = fixture.LocationId,
+            Lines = [new IssueStockLineCommand { ItemId = fixture.ItemId, Qty = 3m, LotNo = "LOT-Z" }]
+        }));
+
+        Assert.Contains("Insufficient stock for lot", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task IssueStockAsync_RequiresSerial_ForSerialTrackedItem()
+    {
+        var (factory, fixture) = await BuildFixtureAsync(seedBalanceQty: null, trackingType: TrackingType.Serial);
+        var service = new InventoryCommandService(factory, new RecordingAccessControl(), new FakeCurrentUserContext());
+
+        await service.ReceiveStockAsync(new ReceiveStockCommand
+        {
+            WarehouseId = fixture.WarehouseId,
+            LocationId = fixture.LocationId,
+            Lines = [new ReceiveStockLineCommand { ItemId = fixture.ItemId, Qty = 1m, SerialNo = "SER-1001" }]
+        });
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.IssueStockAsync(new IssueStockCommand
+        {
+            WarehouseId = fixture.WarehouseId,
+            LocationId = fixture.LocationId,
+            Lines = [new IssueStockLineCommand { ItemId = fixture.ItemId, Qty = 1m }]
+        }));
+
+        Assert.Contains("SerialNo is required", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task AdjustStockByCountAsync_AlignsBalanceToCountedQty_AndWritesLedger()
     {
         var (factory, fixture) = await BuildFixtureAsync(seedBalanceQty: 15m);
@@ -223,7 +340,9 @@ public sealed class InventoryCommandServiceTests
         Assert.Equal(3m, ledger.Qty);
     }
 
-    private static async Task<(TestDbContextFactory Factory, SeedFixture Fixture)> BuildFixtureAsync(decimal? seedBalanceQty)
+    private static async Task<(TestDbContextFactory Factory, SeedFixture Fixture)> BuildFixtureAsync(
+        decimal? seedBalanceQty,
+        TrackingType trackingType = TrackingType.None)
     {
         var options = new DbContextOptionsBuilder<ErpDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
@@ -236,7 +355,7 @@ public sealed class InventoryCommandServiceTests
         var uom = new UnitOfMeasure("EA", "Each");
         var warehouse = new Warehouse("MAIN", "Main Warehouse");
         var location = new Location(warehouse.Id, "A-01", "A-01");
-        var item = new Item("A-100", "Alpha", category.Id, uom.Id, TrackingType.None);
+        var item = new Item("A-100", "Alpha", category.Id, uom.Id, trackingType);
 
         db.ItemCategories.Add(category);
         db.UnitOfMeasures.Add(uom);
