@@ -1,4 +1,4 @@
-using Erp.Application.Authorization;
+﻿using Erp.Application.Authorization;
 using Erp.Application.DTOs;
 using Erp.Application.Interfaces;
 using Erp.Domain.Entities;
@@ -81,6 +81,33 @@ public sealed class UserApprovalServiceTests
         Assert.Equal("비활성화된 계정입니다.", loginResult.ErrorMessage);
     }
 
+    [Fact]
+    public async Task ListPendingUsersAsync_FiltersByStatusAndKeyword()
+    {
+        var fixture = CreateFixture();
+        _ = await SeedPendingUserAsync(fixture, "pending-user");
+
+        await using (var db = await fixture.Factory.CreateDbContextAsync())
+        {
+            var activeUser = new User("active-user", fixture.PasswordHasher.Hash(KnownPassword), "active-user@erp.local");
+            activeUser.Approve();
+            db.Users.Add(activeUser);
+            await db.SaveChangesAsync();
+        }
+
+        var result = await fixture.ApprovalService.ListPendingUsersAsync(new Erp.Application.Queries.ListPendingUsersQuery
+        {
+            Keyword = "pending",
+            Status = UserStatus.Pending,
+            Page = 1,
+            PageSize = 50
+        });
+
+        Assert.Single(result.Items);
+        Assert.Equal("pending-user", result.Items[0].Username);
+        Assert.Equal(UserStatus.Pending, result.Items[0].Status);
+    }
+
     private const string KnownPassword = "Password!1";
 
     private static async Task<Guid> SeedPendingUserAsync(TestFixture fixture, string username)
@@ -148,3 +175,4 @@ public sealed class UserApprovalServiceTests
         }
     }
 }
+

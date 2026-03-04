@@ -4,4 +4,5 @@ public sealed record PendingUserDto(
     Guid UserId,
     string Username,
     string? Email,
-    DateTime CreatedAtUtc);
+    DateTime CreatedAtUtc,
+    Erp.Domain.Entities.UserStatus Status);

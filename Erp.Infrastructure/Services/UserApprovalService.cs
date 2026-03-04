@@ -42,20 +42,28 @@ public sealed class UserApprovalService : IUserApprovalService
 
         await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
 
-        var pending = db.Users
-            .AsNoTracking()
-            .Where(x => x.Status == UserStatus.Pending);
+        var users = db.Users.AsNoTracking();
+
+        var status = query.Status;
+        if (status.HasValue)
+        {
+            users = users.Where(x => x.Status == status.Value);
+        }
+        else
+        {
+            users = users.Where(x => x.Status == UserStatus.Pending);
+        }
 
         var keyword = query.Keyword?.Trim();
         if (!string.IsNullOrWhiteSpace(keyword))
         {
-            pending = pending.Where(x =>
+            users = users.Where(x =>
                 x.Username.Contains(keyword) ||
                 (x.Email != null && x.Email.Contains(keyword)));
         }
 
-        var totalCount = await pending.CountAsync(cancellationToken);
-        var rows = await pending
+        var totalCount = await users.CountAsync(cancellationToken);
+        var rows = await users
             .OrderByDescending(x => x.CreatedAtUtc)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
@@ -63,7 +71,8 @@ public sealed class UserApprovalService : IUserApprovalService
                 x.Id,
                 x.Username,
                 x.Email,
-                x.CreatedAtUtc))
+                x.CreatedAtUtc,
+                x.Status))
             .ToListAsync(cancellationToken);
 
         return new PagedResult<PendingUserDto>(rows, totalCount, page, pageSize);

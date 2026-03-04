@@ -3,62 +3,138 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:controls="clr-namespace:Erp.Desktop.Controls">
     <Grid Background="#F5F7FA">
-        <Border Width="400"
-                Padding="24"
-                Background="White"
-                BorderBrush="#D7DCE3"
-                BorderThickness="1"
-                CornerRadius="8"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center">
-            <StackPanel>
-                <TextBlock Text="회원가입" FontSize="24" FontWeight="Bold" />
-                <TextBlock Text="가입 후 관리자 승인 완료 시 로그인할 수 있습니다."
-                           Margin="0,6,0,20"
-                           Foreground="#667085"
-                           TextWrapping="Wrap" />
+        <Grid>
+            <Border Width="460"
+                    Padding="24"
+                    Background="White"
+                    BorderBrush="#D7DCE3"
+                    BorderThickness="1"
+                    CornerRadius="10"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Visibility" Value="Visible" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsRegistrationSucceeded}" Value="True">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
 
-                <TextBlock Text="아이디" Margin="0,0,0,4" />
-                <TextBox Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}" />
+                <StackPanel>
+                    <TextBlock Text="회원가입" FontSize="24" FontWeight="Bold" />
+                    <TextBlock Text="가입 후 관리자 승인 완료 시 로그인할 수 있습니다."
+                               Margin="0,6,0,18"
+                               Foreground="#667085"
+                               TextWrapping="Wrap" />
 
-                <TextBlock Text="비밀번호" Margin="0,12,0,4" />
-                <PasswordBox x:Name="PasswordBox"
-                             PasswordChanged="PasswordBox_OnPasswordChanged" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="110" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
 
-                <TextBlock Text="이메일(선택)" Margin="0,12,0,4" />
-                <TextBox Text="{Binding Email, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,6,8,0" Text="Username" />
+                        <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}" />
 
-                <controls:ValidationSummary Margin="0,12,0,0"
-                                            Errors="{Binding ValidationErrors}"
-                                            HasErrors="{Binding HasValidationErrors}" />
+                        <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,14,8,0" Text="Email" />
+                        <TextBox Grid.Row="1" Grid.Column="1"
+                                 Margin="0,8,0,0"
+                                 Text="{Binding Email, UpdateSourceTrigger=PropertyChanged}" />
 
-                <controls:MessageBar Margin="0,10,0,0"
-                                     Message="{Binding UserMessage.Text}"
-                                     Kind="{Binding UserMessage.Kind}"
-                                     IsOpen="{Binding HasUserMessage}" />
+                        <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,14,8,0" Text="Password" />
+                        <PasswordBox Grid.Row="2" Grid.Column="1"
+                                     Margin="0,8,0,0"
+                                     x:Name="PasswordBox"
+                                     PasswordChanged="PasswordBox_OnPasswordChanged" />
+                    </Grid>
 
-                <Button Content="가입 신청"
-                        Command="{Binding RegisterCommand}"
-                        Margin="0,16,0,0"
-                        Height="36" />
+                    <controls:ValidationSummary Margin="0,14,0,0"
+                                                Errors="{Binding ValidationErrors}"
+                                                HasErrors="{Binding HasValidationErrors}" />
 
-                <Button Content="로그인 화면으로 돌아가기"
-                        Command="{Binding BackToLoginCommand}"
-                        Margin="0,10,0,0"
-                        Height="32">
-                    <Button.Style>
-                        <Style TargetType="Button">
-                            <Setter Property="Visibility" Value="Collapsed" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsRegistrationSucceeded}" Value="True">
-                                    <Setter Property="Visibility" Value="Visible" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Button.Style>
-                </Button>
-            </StackPanel>
-        </Border>
+                    <controls:MessageBar Margin="0,10,0,0"
+                                         Message="{Binding UserMessage.Text}"
+                                         Kind="{Binding UserMessage.Kind}"
+                                         IsOpen="{Binding HasUserMessage}" />
+
+                    <Button Content="가입 신청"
+                            Command="{Binding RegisterCommand}"
+                            Margin="0,18,0,0"
+                            Height="38" />
+
+                    <Button Content="로그인 화면으로 돌아가기"
+                            Command="{Binding BackToLoginCommand}"
+                            Margin="0,10,0,0"
+                            Height="32" />
+                </StackPanel>
+            </Border>
+
+            <Border Width="460"
+                    Padding="24"
+                    Background="White"
+                    BorderBrush="#D7DCE3"
+                    BorderThickness="1"
+                    CornerRadius="10"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsRegistrationSucceeded}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+
+                <StackPanel>
+                    <TextBlock Text="가입 요청 완료" FontSize="24" FontWeight="Bold" />
+                    <TextBlock Text="관리자 승인 후 로그인 가능합니다."
+                               Margin="0,6,0,16"
+                               Foreground="#667085"
+                               TextWrapping="Wrap" />
+
+                    <Border Padding="14"
+                            BorderThickness="1"
+                            BorderBrush="#FDC97C"
+                            Background="#FFF7E6"
+                            CornerRadius="8">
+                        <StackPanel>
+                            <DockPanel>
+                                <controls:StatusBadge DockPanel.Dock="Left" Status="Pending" Text="Pending" />
+                                <TextBlock Margin="10,0,0,0"
+                                           VerticalAlignment="Center"
+                                           Foreground="#B54708"
+                                           Text="승인 대기 상태" />
+                            </DockPanel>
+                            <TextBlock Margin="0,10,0,0"
+                                       TextWrapping="Wrap"
+                                       Foreground="#92400E"
+                                       Text="관리자(Admin)가 승인하면 Active 상태로 바뀌고 로그인할 수 있습니다." />
+                        </StackPanel>
+                    </Border>
+
+                    <controls:MessageBar Margin="0,12,0,0"
+                                         Message="{Binding UserMessage.Text}"
+                                         Kind="{Binding UserMessage.Kind}"
+                                         IsOpen="{Binding HasUserMessage}" />
+
+                    <Button Content="로그인 화면으로 이동"
+                            Command="{Binding BackToLoginCommand}"
+                            Margin="0,16,0,0"
+                            Height="36" />
+                </StackPanel>
+            </Border>
+        </Grid>
 
         <controls:BusyOverlay IsBusy="{Binding IsBusy}" Message="{Binding BusyMessage}" />
     </Grid>
