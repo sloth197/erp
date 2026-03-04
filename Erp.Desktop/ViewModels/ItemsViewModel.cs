@@ -1,4 +1,5 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.IO;
 using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -20,7 +21,7 @@ public sealed partial class ItemsViewModel : ViewModelBase
     private readonly IItemCommandService _itemCommandService;
     private readonly IFileSaveDialogService _fileSaveDialogService;
     private readonly IItemCsvExportService _itemCsvExportService;
-    private bool _categoriesLoaded;
+    private bool _lookupLoaded;
 
     [ObservableProperty]
     private ItemSearchCriteria searchCriteria = new();
@@ -29,15 +30,34 @@ public sealed partial class ItemsViewModel : ViewModelBase
     private ObservableCollection<ItemCategoryFilterOption> categories = new();
 
     [ObservableProperty]
+    private ObservableCollection<ItemCategoryFilterOption> editableCategories = new();
+
+    [ObservableProperty]
     private ObservableCollection<ActiveFilterOption> activeFilters = new();
+
+    [ObservableProperty]
+    private ObservableCollection<TrackingTypeFilterOption> trackingFilters = new();
+
+    [ObservableProperty]
+    private ObservableCollection<UnitOfMeasureOption> unitOfMeasures = new();
 
     [ObservableProperty]
     private ObservableCollection<ItemRow> items = new();
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(SaveItemCommand))]
+    [NotifyCanExecuteChangedFor(nameof(CancelEditCommand))]
     [NotifyCanExecuteChangedFor(nameof(ToggleActiveCommand))]
     private ItemRow? selectedItem;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(SaveItemCommand))]
+    [NotifyCanExecuteChangedFor(nameof(CancelEditCommand))]
+    private ItemEditor? editor;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DetailHeader))]
+    private bool isCreateMode;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(PreviousPageCommand))]
@@ -51,12 +71,22 @@ public sealed partial class ItemsViewModel : ViewModelBase
     [NotifyCanExecuteChangedFor(nameof(NextPageCommand))]
     private int totalCount;
 
+    [ObservableProperty]
+    private string sortBy = "itemCode";
+
+    [ObservableProperty]
+    private string sortDirection = "asc";
+
     public ObservableCollection<int> PageSizes { get; } = new([20, 50, 100, 200]);
+    public ObservableCollection<TrackingType> TrackingTypeEditOptions { get; } =
+        new([TrackingType.None, TrackingType.Lot, TrackingType.Serial, TrackingType.Expiry]);
 
     public int TotalPages => PageSize <= 0 ? 0 : (int)Math.Ceiling(TotalCount / (double)PageSize);
     public bool CanRead { get; }
     public bool CanWrite { get; }
     public bool CanExport { get; }
+    public bool CanEditDetail => CanWrite && Editor is not null;
+    public string DetailHeader => IsCreateMode ? "Item Detail - New" : "Item Detail";
     public string ActiveToggleButtonText => SelectedItem?.IsActive == true ? "Deactivate" : "Activate";
     public bool ShowEmptyState => !IsBusy && Items.Count == 0;
 
@@ -88,15 +118,35 @@ public sealed partial class ItemsViewModel : ViewModelBase
             ActiveFilterOption.InactiveOnly
         };
 
+        TrackingFilters = new ObservableCollection<TrackingTypeFilterOption>
+        {
+            TrackingTypeFilterOption.All,
+            new TrackingTypeFilterOption(TrackingType.None, "None"),
+            new TrackingTypeFilterOption(TrackingType.Lot, "Lot"),
+            new TrackingTypeFilterOption(TrackingType.Serial, "Serial"),
+            new TrackingTypeFilterOption(TrackingType.Expiry, "Expiry")
+        };
+
         SearchCriteria.SelectedCategory = ItemCategoryFilterOption.All;
         SearchCriteria.Active = ActiveFilterOption.All;
+        SearchCriteria.SelectedTrackingType = TrackingTypeFilterOption.All;
 
-        _ = LoadAsync();
+        _ = InitializeAsync();
     }
 
     partial void OnSelectedItemChanged(ItemRow? value)
     {
         OnPropertyChanged(nameof(ActiveToggleButtonText));
+
+        if (value is not null && !IsCreateMode)
+        {
+            LoadEditorFromRow(value);
+        }
+    }
+
+    partial void OnEditorChanged(ItemEditor? value)
+    {
+        OnPropertyChanged(nameof(CanEditDetail));
     }
 
     partial void OnItemsChanged(ObservableCollection<ItemRow> value)
@@ -126,12 +176,17 @@ public sealed partial class ItemsViewModel : ViewModelBase
 
     private bool CanSaveItem()
     {
-        return !IsBusy && CanWrite && SelectedItem is not null;
+        return !IsBusy && CanWrite && Editor is not null;
+    }
+
+    private bool CanCancelEdit()
+    {
+        return !IsBusy && CanWrite && Editor is not null;
     }
 
     private bool CanToggleActive()
     {
-        return !IsBusy && CanWrite && SelectedItem is not null;
+        return !IsBusy && CanWrite && !IsCreateMode && SelectedItem is not null;
     }
 
     private bool CanExportItems()
@@ -176,37 +231,94 @@ public sealed partial class ItemsViewModel : ViewModelBase
     }
 
     [RelayCommand(CanExecute = nameof(CanAddItem))]
-    private void AddItem()
+    private async Task AddItemAsync()
     {
-        SetSuccess("Add flow will be completed in the next step.");
+        await EnsureLookupOptionsLoadedAsync();
+
+        var defaultCategory = EditableCategories.FirstOrDefault();
+        var defaultUom = UnitOfMeasures.FirstOrDefault();
+
+        if (defaultCategory is null || defaultUom is null)
+        {
+            SetError("Master data is missing. Category and Unit of Measure are required.");
+            return;
+        }
+
+        ClearValidationErrors();
+        ClearUserMessage();
+
+        IsCreateMode = true;
+        SelectedItem = null;
+        Editor = new ItemEditor
+        {
+            ItemCode = string.Empty,
+            Name = string.Empty,
+            Barcode = null,
+            IsActive = true,
+            SelectedCategory = defaultCategory,
+            SelectedUnitOfMeasure = defaultUom,
+            SelectedTrackingType = TrackingType.None,
+            RowVersion = Array.Empty<byte>()
+        };
     }
 
     [RelayCommand(CanExecute = nameof(CanSaveItem))]
     private async Task SaveItemAsync()
     {
-        if (SelectedItem is null)
+        if (Editor is null)
         {
+            return;
+        }
+
+        ClearValidationErrors();
+        ClearUserMessage();
+
+        if (!ValidateEditor(Editor))
+        {
+            SetError("Please fix the validation errors.");
             return;
         }
 
         try
         {
-            ClearUserMessage();
             SetBusy(true, "Saving item...");
 
-            await _itemCommandService.UpdateItemAsync(new UpdateItemCommand
+            if (IsCreateMode)
             {
-                ItemId = SelectedItem.Id,
-                RowVersion = SelectedItem.RowVersion.ToArray(),
-                ItemCode = SelectedItem.ItemCode,
-                Barcode = SelectedItem.Barcode,
-                Name = SelectedItem.Name,
-                CategoryId = SelectedItem.CategoryId,
-                UnitOfMeasureId = SelectedItem.UnitOfMeasureId,
-                TrackingType = SelectedItem.TrackingType
+                var createResult = await _itemCommandService.CreateItemAsync(new CreateItemCommand
+                {
+                    ItemCode = Editor.ItemCode.Trim(),
+                    Barcode = string.IsNullOrWhiteSpace(Editor.Barcode) ? null : Editor.Barcode.Trim(),
+                    Name = Editor.Name.Trim(),
+                    CategoryId = Editor.SelectedCategory!.Id!.Value,
+                    UnitOfMeasureId = Editor.SelectedUnitOfMeasure!.Id,
+                    TrackingType = Editor.SelectedTrackingType
+                });
+
+                IsCreateMode = false;
+                await LoadInternalAsync(resetPage: false, preferredItemId: createResult.ItemId);
+                SetSuccess("Item created.");
+                return;
+            }
+
+            if (Editor.ItemId is null || Editor.RowVersion.Length == 0)
+            {
+                throw new InvalidOperationException("Invalid edit state. Reload and try again.");
+            }
+
+            var updateResult = await _itemCommandService.UpdateItemAsync(new UpdateItemCommand
+            {
+                ItemId = Editor.ItemId.Value,
+                RowVersion = Editor.RowVersion.ToArray(),
+                ItemCode = Editor.ItemCode.Trim(),
+                Barcode = string.IsNullOrWhiteSpace(Editor.Barcode) ? null : Editor.Barcode.Trim(),
+                Name = Editor.Name.Trim(),
+                CategoryId = Editor.SelectedCategory!.Id!.Value,
+                UnitOfMeasureId = Editor.SelectedUnitOfMeasure!.Id,
+                TrackingType = Editor.SelectedTrackingType
             });
 
-            await LoadInternalAsync(resetPage: false);
+            await LoadInternalAsync(resetPage: false, preferredItemId: updateResult.ItemId);
             SetSuccess("Item saved.");
         }
         catch (Exception ex)
@@ -216,6 +328,39 @@ public sealed partial class ItemsViewModel : ViewModelBase
         finally
         {
             SetBusy(false);
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(CanCancelEdit))]
+    private void CancelEdit()
+    {
+        ClearValidationErrors();
+        ClearUserMessage();
+
+        if (IsCreateMode)
+        {
+            IsCreateMode = false;
+
+            if (SelectedItem is not null)
+            {
+                LoadEditorFromRow(SelectedItem);
+                return;
+            }
+
+            var firstRow = Items.FirstOrDefault();
+            if (firstRow is not null)
+            {
+                SelectedItem = firstRow;
+                return;
+            }
+
+            Editor = null;
+            return;
+        }
+
+        if (SelectedItem is not null)
+        {
+            LoadEditorFromRow(SelectedItem);
         }
     }
 
@@ -247,7 +392,7 @@ public sealed partial class ItemsViewModel : ViewModelBase
                 });
             }
 
-            await LoadInternalAsync(resetPage: false);
+            await LoadInternalAsync(resetPage: false, preferredItemId: SelectedItem.Id);
             SetSuccess("Item status updated.");
         }
         catch (Exception ex)
@@ -285,8 +430,9 @@ public sealed partial class ItemsViewModel : ViewModelBase
                 Keyword = SearchCriteria.Keyword,
                 CategoryId = SearchCriteria.SelectedCategory?.Id,
                 IsActive = SearchCriteria.Active?.IsActive,
-                SortBy = "itemCode",
-                SortDirection = "asc"
+                TrackingType = SearchCriteria.SelectedTrackingType?.TrackingType,
+                SortBy = SortBy,
+                SortDirection = SortDirection
             };
 
             var rows = await _itemQueryService.ExportItemsAsync(exportQuery);
@@ -326,7 +472,20 @@ public sealed partial class ItemsViewModel : ViewModelBase
             return;
         }
 
+        IsCreateMode = false;
         SelectedItem = row;
+    }
+
+    public async Task ApplyGridSortAsync(string? sortMemberPath, ListSortDirection direction)
+    {
+        if (IsBusy || !CanRead || string.IsNullOrWhiteSpace(sortMemberPath))
+        {
+            return;
+        }
+
+        SortBy = sortMemberPath;
+        SortDirection = direction == ListSortDirection.Descending ? "desc" : "asc";
+        await LoadInternalAsync(resetPage: true);
     }
 
     partial void OnPageChanged(int value)
@@ -355,7 +514,12 @@ public sealed partial class ItemsViewModel : ViewModelBase
         OnPropertyChanged(nameof(TotalPages));
     }
 
-    private async Task LoadInternalAsync(bool resetPage)
+    private async Task InitializeAsync()
+    {
+        await LoadInternalAsync(resetPage: true);
+    }
+
+    private async Task LoadInternalAsync(bool resetPage, Guid? preferredItemId = null)
     {
         if (!CanRead)
         {
@@ -375,17 +539,18 @@ public sealed partial class ItemsViewModel : ViewModelBase
                 Page = 1;
             }
 
-            await EnsureCategoryOptionsLoadedAsync();
+            await EnsureLookupOptionsLoadedAsync();
 
             var query = new SearchItemsQuery
             {
                 Keyword = SearchCriteria.Keyword,
                 CategoryId = SearchCriteria.SelectedCategory?.Id,
                 IsActive = SearchCriteria.Active?.IsActive,
+                TrackingType = SearchCriteria.SelectedTrackingType?.TrackingType,
                 Page = Page,
                 PageSize = PageSize,
-                SortBy = "itemCode",
-                SortDirection = "asc"
+                SortBy = SortBy,
+                SortDirection = SortDirection
             };
 
             var result = await _itemQueryService.SearchItemsAsync(query);
@@ -394,9 +559,32 @@ public sealed partial class ItemsViewModel : ViewModelBase
             Page = result.Page;
             PageSize = result.PageSize;
 
-            if (SelectedItem is not null)
+            if (IsCreateMode)
             {
-                SelectedItem = Items.FirstOrDefault(x => x.Id == SelectedItem.Id);
+                return;
+            }
+
+            var selectionId = preferredItemId ?? SelectedItem?.Id;
+            if (selectionId.HasValue)
+            {
+                var matched = Items.FirstOrDefault(x => x.Id == selectionId.Value);
+                if (matched is not null)
+                {
+                    SelectedItem = matched;
+                }
+            }
+
+            if (SelectedItem is null)
+            {
+                var firstRow = Items.FirstOrDefault();
+                if (firstRow is not null)
+                {
+                    SelectedItem = firstRow;
+                }
+                else
+                {
+                    Editor = null;
+                }
             }
 
             if (Items.Count == 0)
@@ -414,23 +602,102 @@ public sealed partial class ItemsViewModel : ViewModelBase
         }
     }
 
-    private async Task EnsureCategoryOptionsLoadedAsync()
+    private async Task EnsureLookupOptionsLoadedAsync()
     {
-        if (_categoriesLoaded)
+        if (_lookupLoaded)
         {
             return;
         }
 
-        var categoryDtos = await _itemQueryService.GetItemCategoryOptionsAsync();
-        var options = categoryDtos
+        var categoryTask = _itemQueryService.GetItemCategoryOptionsAsync();
+        var uomTask = _itemQueryService.GetUnitOfMeasureOptionsAsync();
+        await Task.WhenAll(categoryTask, uomTask);
+
+        var categoryRows = categoryTask.Result
             .Select(x => new ItemCategoryFilterOption(x.Id, $"{x.CategoryCode} - {x.CategoryName}"))
             .OrderBy(x => x.DisplayName)
             .ToList();
 
         var categoryOptions = new List<ItemCategoryFilterOption> { ItemCategoryFilterOption.All };
-        categoryOptions.AddRange(options);
+        categoryOptions.AddRange(categoryRows);
         Categories = new ObservableCollection<ItemCategoryFilterOption>(categoryOptions);
-        _categoriesLoaded = true;
+        EditableCategories = new ObservableCollection<ItemCategoryFilterOption>(categoryRows);
+
+        UnitOfMeasures = new ObservableCollection<UnitOfMeasureOption>(uomTask.Result
+            .Select(x => new UnitOfMeasureOption(x.Id, $"{x.UomCode} - {x.UomName}"))
+            .OrderBy(x => x.DisplayName));
+
+        SearchCriteria.SelectedCategory = Categories.FirstOrDefault() ?? ItemCategoryFilterOption.All;
+        SearchCriteria.Active ??= ActiveFilterOption.All;
+        SearchCriteria.SelectedTrackingType ??= TrackingTypeFilterOption.All;
+
+        _lookupLoaded = true;
+    }
+
+    private void LoadEditorFromRow(ItemRow row)
+    {
+        var category = EditableCategories.FirstOrDefault(x => x.Id == row.CategoryId)
+            ?? new ItemCategoryFilterOption(row.CategoryId, row.CategoryDisplay);
+
+        var uom = UnitOfMeasures.FirstOrDefault(x => x.Id == row.UnitOfMeasureId)
+            ?? new UnitOfMeasureOption(row.UnitOfMeasureId, $"{row.UnitOfMeasureCode} - {row.UnitOfMeasureName}");
+
+        Editor = new ItemEditor
+        {
+            ItemId = row.Id,
+            RowVersion = row.RowVersion.ToArray(),
+            ItemCode = row.ItemCode,
+            Name = row.Name,
+            Barcode = row.Barcode,
+            IsActive = row.IsActive,
+            SelectedCategory = category,
+            SelectedUnitOfMeasure = uom,
+            SelectedTrackingType = row.TrackingType
+        };
+    }
+
+    private bool ValidateEditor(ItemEditor editor)
+    {
+        if (editor is null)
+        {
+            AddValidationError("Item editor is not initialized.");
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(editor.ItemCode))
+        {
+            AddValidationError("Item code is required.");
+        }
+        else if (editor.ItemCode.Trim().Length > 50)
+        {
+            AddValidationError("Item code must be 50 characters or fewer.");
+        }
+
+        if (string.IsNullOrWhiteSpace(editor.Name))
+        {
+            AddValidationError("Item name is required.");
+        }
+        else if (editor.Name.Trim().Length > 200)
+        {
+            AddValidationError("Item name must be 200 characters or fewer.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(editor.Barcode) && editor.Barcode.Trim().Length > 100)
+        {
+            AddValidationError("Barcode must be 100 characters or fewer.");
+        }
+
+        if (editor.SelectedCategory?.Id is null)
+        {
+            AddValidationError("Category is required.");
+        }
+
+        if (editor.SelectedUnitOfMeasure is null)
+        {
+            AddValidationError("Unit of measure is required.");
+        }
+
+        return !HasValidationErrors;
     }
 
     protected override void OnBusyStateChanged(bool isBusy)
@@ -441,6 +708,7 @@ public sealed partial class ItemsViewModel : ViewModelBase
         NextPageCommand.NotifyCanExecuteChanged();
         AddItemCommand.NotifyCanExecuteChanged();
         SaveItemCommand.NotifyCanExecuteChanged();
+        CancelEditCommand.NotifyCanExecuteChanged();
         ToggleActiveCommand.NotifyCanExecuteChanged();
         ExportCsvCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(ShowEmptyState));
@@ -458,6 +726,7 @@ public sealed partial class ItemsViewModel : ViewModelBase
             dto.TrackingType,
             dto.UnitOfMeasureId,
             dto.UnitOfMeasureCode,
+            dto.UnitOfMeasureName,
             dto.Barcode,
             0m,
             dto.RowVersion.ToArray(),
@@ -475,6 +744,7 @@ public sealed partial class ItemsViewModel : ViewModelBase
         TrackingType TrackingType,
         Guid UnitOfMeasureId,
         string UnitOfMeasureCode,
+        string UnitOfMeasureName,
         string? Barcode,
         decimal Price,
         byte[] RowVersion,
@@ -489,11 +759,18 @@ public sealed partial class ItemsViewModel : ViewModelBase
         public static ItemCategoryFilterOption All { get; } = new(null, "All");
     }
 
+    public sealed record UnitOfMeasureOption(Guid Id, string DisplayName);
+
     public sealed record ActiveFilterOption(bool? IsActive, string DisplayName)
     {
         public static ActiveFilterOption All { get; } = new(null, "All");
         public static ActiveFilterOption ActiveOnly { get; } = new(true, "Active");
         public static ActiveFilterOption InactiveOnly { get; } = new(false, "Inactive");
+    }
+
+    public sealed record TrackingTypeFilterOption(TrackingType? TrackingType, string DisplayName)
+    {
+        public static TrackingTypeFilterOption All { get; } = new(null, "All");
     }
 
     public sealed partial class ItemSearchCriteria : ObservableObject
@@ -506,5 +783,38 @@ public sealed partial class ItemsViewModel : ViewModelBase
 
         [ObservableProperty]
         private ActiveFilterOption? active;
+
+        [ObservableProperty]
+        private TrackingTypeFilterOption? selectedTrackingType;
+    }
+
+    public sealed partial class ItemEditor : ObservableObject
+    {
+        [ObservableProperty]
+        private Guid? itemId;
+
+        [ObservableProperty]
+        private byte[] rowVersion = Array.Empty<byte>();
+
+        [ObservableProperty]
+        private string itemCode = string.Empty;
+
+        [ObservableProperty]
+        private string name = string.Empty;
+
+        [ObservableProperty]
+        private string? barcode;
+
+        [ObservableProperty]
+        private bool isActive = true;
+
+        [ObservableProperty]
+        private ItemCategoryFilterOption? selectedCategory;
+
+        [ObservableProperty]
+        private UnitOfMeasureOption? selectedUnitOfMeasure;
+
+        [ObservableProperty]
+        private TrackingType selectedTrackingType = TrackingType.None;
     }
 }

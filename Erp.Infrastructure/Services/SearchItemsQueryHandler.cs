@@ -41,6 +41,20 @@ public sealed class SearchItemsQueryHandler : IItemQueryService
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<UnitOfMeasureOptionDto>> GetUnitOfMeasureOptionsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        _accessControl.DemandPermission(PermissionCodes.MasterItemsRead);
+
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        return await db.UnitOfMeasures
+            .AsNoTracking()
+            .Where(x => x.IsActive)
+            .OrderBy(x => x.UomCode)
+            .Select(x => new UnitOfMeasureOptionDto(x.Id, x.UomCode, x.Name))
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<PagedResult<ItemListDto>> SearchItemsAsync(
         SearchItemsQuery query,
         CancellationToken cancellationToken = default)
