@@ -5,6 +5,10 @@ namespace Erp.Application.Interfaces;
 
 public interface IInventoryCommandService
 {
+    Task<StockTransactionResultDto> AdjustStockByCountAsync(
+        AdjustStockByCountCommand command,
+        CancellationToken cancellationToken = default);
+
     Task<StockTransactionResultDto> ReceiveStockAsync(
         ReceiveStockCommand command,
         CancellationToken cancellationToken = default);

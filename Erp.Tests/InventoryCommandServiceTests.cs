@@ -162,6 +162,67 @@ public sealed class InventoryCommandServiceTests
         Assert.Equal("RCPT-20260227-0002", second.TxNo);
     }
 
+    [Fact]
+    public async Task AdjustStockByCountAsync_AlignsBalanceToCountedQty_AndWritesLedger()
+    {
+        var (factory, fixture) = await BuildFixtureAsync(seedBalanceQty: 15m);
+        var service = new InventoryCommandService(factory, new RecordingAccessControl(), new FakeCurrentUserContext());
+
+        var occurredAtUtc = new DateTime(2026, 2, 28, 9, 30, 0, DateTimeKind.Utc);
+        var result = await service.AdjustStockByCountAsync(new AdjustStockByCountCommand
+        {
+            OccurredAtUtc = occurredAtUtc,
+            WarehouseId = fixture.WarehouseId,
+            LocationId = fixture.LocationId,
+            Lines =
+            [
+                new AdjustStockByCountLineCommand { ItemId = fixture.ItemId, CountedQty = 11m, Note = "Cycle count" }
+            ]
+        });
+
+        Assert.StartsWith("ADJ-20260228-", result.TxNo, StringComparison.Ordinal);
+        Assert.Equal(1, result.LineCount);
+
+        await using var db = await factory.CreateDbContextAsync();
+        var ledger = await db.StockLedgerEntries.SingleAsync(x => x.TxNo == result.TxNo);
+        var balance = await db.InventoryBalances.SingleAsync(x =>
+            x.ItemId == fixture.ItemId &&
+            x.WarehouseId == fixture.WarehouseId &&
+            x.LocationId == fixture.LocationId);
+        var audit = await db.AuditLogs.SingleAsync(x => x.Action == "Stock.AdjustByCount" && x.Target == result.TxNo);
+
+        Assert.Equal(InventoryTxType.AdjustOut, ledger.TxType);
+        Assert.Equal(-4m, ledger.Qty);
+        Assert.Equal(11m, balance.QtyOnHand);
+        Assert.Contains("Cycle count", audit.DetailJson ?? string.Empty, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task AdjustStockByCountAsync_AllowsAdjustPermissionWithoutWrite()
+    {
+        var (factory, fixture) = await BuildFixtureAsync(seedBalanceQty: 0m);
+        var accessControl = new RecordingAccessControl();
+        var currentUser = new FakeCurrentUserContext(PermissionCodes.InventoryStockAdjust);
+        var service = new InventoryCommandService(factory, accessControl, currentUser);
+
+        var result = await service.AdjustStockByCountAsync(new AdjustStockByCountCommand
+        {
+            WarehouseId = fixture.WarehouseId,
+            LocationId = fixture.LocationId,
+            Lines =
+            [
+                new AdjustStockByCountLineCommand { ItemId = fixture.ItemId, CountedQty = 3m }
+            ]
+        });
+
+        await using var db = await factory.CreateDbContextAsync();
+        var ledger = await db.StockLedgerEntries.SingleAsync(x => x.TxNo == result.TxNo);
+
+        Assert.Null(accessControl.LastDemandedPermissionCode);
+        Assert.Equal(InventoryTxType.AdjustIn, ledger.TxType);
+        Assert.Equal(3m, ledger.Qty);
+    }
+
     private static async Task<(TestDbContextFactory Factory, SeedFixture Fixture)> BuildFixtureAsync(decimal? seedBalanceQty)
     {
         var options = new DbContextOptionsBuilder<ErpDbContext>()
@@ -235,10 +296,20 @@ public sealed class InventoryCommandServiceTests
 
     private sealed class FakeCurrentUserContext : ICurrentUserContext
     {
-        private readonly HashSet<string> _permissions = new(StringComparer.OrdinalIgnoreCase)
+        private readonly HashSet<string> _permissions;
+
+        public FakeCurrentUserContext(params string[] permissions)
         {
-            Erp.Application.Authorization.PermissionCodes.InventoryStockWrite
-        };
+            if (permissions.Length == 0)
+            {
+                permissions =
+                [
+                    Erp.Application.Authorization.PermissionCodes.InventoryStockWrite
+                ];
+            }
+
+            _permissions = new HashSet<string>(permissions, StringComparer.OrdinalIgnoreCase);
+        }
 
         public Guid? CurrentUserId { get; } = Guid.NewGuid();
         public string? Username { get; } = "tester";
