@@ -31,7 +31,7 @@ public sealed class InventoryCommandServiceTests
             ]
         });
 
-        Assert.Equal(PermissionCodes.InventoryStockWrite, accessControl.LastDemandedPermissionCode);
+        Assert.Equal(PermissionCodes.InventoryStockReceipt, accessControl.LastDemandedPermissionCode);
         Assert.StartsWith("RCPT-20260227-", result.TxNo, StringComparison.Ordinal);
 
         await using var db = await factory.CreateDbContextAsync();
@@ -52,7 +52,8 @@ public sealed class InventoryCommandServiceTests
     public async Task IssueStockAsync_DecreasesBalance()
     {
         var (factory, fixture) = await BuildFixtureAsync(seedBalanceQty: 20m);
-        var service = new InventoryCommandService(factory, new RecordingAccessControl(), new FakeCurrentUserContext());
+        var accessControl = new RecordingAccessControl();
+        var service = new InventoryCommandService(factory, accessControl, new FakeCurrentUserContext());
 
         var result = await service.IssueStockAsync(new IssueStockCommand
         {
@@ -67,6 +68,7 @@ public sealed class InventoryCommandServiceTests
         });
 
         Assert.Equal("ISS-20260227-0001", result.TxNo);
+        Assert.Equal(PermissionCodes.InventoryStockIssue, accessControl.LastDemandedPermissionCode);
 
         await using var db = await factory.CreateDbContextAsync();
         var ledger = await db.StockLedgerEntries.SingleAsync(x => x.TxNo == result.TxNo);
@@ -160,6 +162,34 @@ public sealed class InventoryCommandServiceTests
 
         Assert.Equal("RCPT-20260227-0001", first.TxNo);
         Assert.Equal("RCPT-20260227-0002", second.TxNo);
+    }
+
+    [Fact]
+    public async Task ReceiveStockAsync_Throws_WhenRequestedTxNoAlreadyExists()
+    {
+        var (factory, fixture) = await BuildFixtureAsync(seedBalanceQty: null);
+        var service = new InventoryCommandService(factory, new RecordingAccessControl(), new FakeCurrentUserContext());
+        const string duplicatedTxNo = "RCPT-20260227-9999";
+
+        await service.ReceiveStockAsync(new ReceiveStockCommand
+        {
+            TxNo = duplicatedTxNo,
+            OccurredAtUtc = new DateTime(2026, 2, 27, 14, 0, 0, DateTimeKind.Utc),
+            WarehouseId = fixture.WarehouseId,
+            LocationId = fixture.LocationId,
+            Lines = [new ReceiveStockLineCommand { ItemId = fixture.ItemId, Qty = 1m }]
+        });
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.ReceiveStockAsync(new ReceiveStockCommand
+        {
+            TxNo = duplicatedTxNo,
+            OccurredAtUtc = new DateTime(2026, 2, 27, 14, 1, 0, DateTimeKind.Utc),
+            WarehouseId = fixture.WarehouseId,
+            LocationId = fixture.LocationId,
+            Lines = [new ReceiveStockLineCommand { ItemId = fixture.ItemId, Qty = 1m }]
+        }));
+
+        Assert.Equal("Duplicate TxNo.", ex.Message);
     }
 
     [Fact]
@@ -315,11 +345,11 @@ public sealed class InventoryCommandServiceTests
     }
 
     [Fact]
-    public async Task AdjustStockByCountAsync_AllowsAdjustPermissionWithoutWrite()
+    public async Task AdjustStockByCountAsync_DemandsAdjustPermission()
     {
         var (factory, fixture) = await BuildFixtureAsync(seedBalanceQty: 0m);
         var accessControl = new RecordingAccessControl();
-        var currentUser = new FakeCurrentUserContext(PermissionCodes.InventoryStockAdjust);
+        var currentUser = new FakeCurrentUserContext();
         var service = new InventoryCommandService(factory, accessControl, currentUser);
 
         var result = await service.AdjustStockByCountAsync(new AdjustStockByCountCommand
@@ -335,9 +365,51 @@ public sealed class InventoryCommandServiceTests
         await using var db = await factory.CreateDbContextAsync();
         var ledger = await db.StockLedgerEntries.SingleAsync(x => x.TxNo == result.TxNo);
 
-        Assert.Null(accessControl.LastDemandedPermissionCode);
+        Assert.Equal(PermissionCodes.InventoryStockAdjust, accessControl.LastDemandedPermissionCode);
         Assert.Equal(InventoryTxType.AdjustIn, ledger.TxType);
         Assert.Equal(3m, ledger.Qty);
+    }
+
+    [Fact]
+    public async Task ReceiveStockAsync_ThrowsForbidden_WhenPermissionDenied()
+    {
+        var (factory, fixture) = await BuildFixtureAsync(seedBalanceQty: null);
+        var service = new InventoryCommandService(factory, new DenyAccessControl(), new FakeCurrentUserContext());
+
+        await Assert.ThrowsAsync<ForbiddenException>(() => service.ReceiveStockAsync(new ReceiveStockCommand
+        {
+            WarehouseId = fixture.WarehouseId,
+            LocationId = fixture.LocationId,
+            Lines = [new ReceiveStockLineCommand { ItemId = fixture.ItemId, Qty = 1m }]
+        }));
+    }
+
+    [Fact]
+    public async Task IssueStockAsync_ThrowsForbidden_WhenPermissionDenied()
+    {
+        var (factory, fixture) = await BuildFixtureAsync(seedBalanceQty: 10m);
+        var service = new InventoryCommandService(factory, new DenyAccessControl(), new FakeCurrentUserContext());
+
+        await Assert.ThrowsAsync<ForbiddenException>(() => service.IssueStockAsync(new IssueStockCommand
+        {
+            WarehouseId = fixture.WarehouseId,
+            LocationId = fixture.LocationId,
+            Lines = [new IssueStockLineCommand { ItemId = fixture.ItemId, Qty = 1m }]
+        }));
+    }
+
+    [Fact]
+    public async Task AdjustStockByCountAsync_ThrowsForbidden_WhenPermissionDenied()
+    {
+        var (factory, fixture) = await BuildFixtureAsync(seedBalanceQty: 0m);
+        var service = new InventoryCommandService(factory, new DenyAccessControl(), new FakeCurrentUserContext());
+
+        await Assert.ThrowsAsync<ForbiddenException>(() => service.AdjustStockByCountAsync(new AdjustStockByCountCommand
+        {
+            WarehouseId = fixture.WarehouseId,
+            LocationId = fixture.LocationId,
+            Lines = [new AdjustStockByCountLineCommand { ItemId = fixture.ItemId, CountedQty = 1m }]
+        }));
     }
 
     private static async Task<(TestDbContextFactory Factory, SeedFixture Fixture)> BuildFixtureAsync(
@@ -413,6 +485,18 @@ public sealed class InventoryCommandServiceTests
         }
     }
 
+    private sealed class DenyAccessControl : IAccessControl
+    {
+        public void DemandAuthenticated()
+        {
+        }
+
+        public void DemandPermission(string permissionCode)
+        {
+            throw new ForbiddenException($"Permission '{permissionCode}' is required.");
+        }
+    }
+
     private sealed class FakeCurrentUserContext : ICurrentUserContext
     {
         private readonly HashSet<string> _permissions;
@@ -423,7 +507,10 @@ public sealed class InventoryCommandServiceTests
             {
                 permissions =
                 [
-                    Erp.Application.Authorization.PermissionCodes.InventoryStockWrite
+                    Erp.Application.Authorization.PermissionCodes.InventoryStockRead,
+                    Erp.Application.Authorization.PermissionCodes.InventoryStockReceipt,
+                    Erp.Application.Authorization.PermissionCodes.InventoryStockIssue,
+                    Erp.Application.Authorization.PermissionCodes.InventoryStockAdjust
                 ];
             }
 

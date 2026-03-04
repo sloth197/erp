@@ -9,7 +9,7 @@ using Erp.Desktop.Navigation;
 
 namespace Erp.Desktop.ViewModels;
 
-[RequiredPermission(PermissionCodes.InventoryStockWrite)]
+[RequiredPermission(PermissionCodes.InventoryStockIssue)]
 public sealed partial class StockIssueViewModel : ObservableObject
 {
     private static readonly Regex ItemIdRegex = new("item '\\s*(?<id>[0-9a-fA-F-]{36})\\s*'", RegexOptions.Compiled);
@@ -63,7 +63,7 @@ public sealed partial class StockIssueViewModel : ObservableObject
     [ObservableProperty]
     private string? statusMessage;
 
-    public bool CanWrite { get; }
+    public bool CanIssue { get; }
 
     public StockIssueViewModel(
         IInventoryCommandService inventoryCommandService,
@@ -73,7 +73,7 @@ public sealed partial class StockIssueViewModel : ObservableObject
         _inventoryCommandService = inventoryCommandService;
         _inventoryQueryService = inventoryQueryService;
 
-        CanWrite = currentUserContext.HasPermission(PermissionCodes.InventoryStockWrite);
+        CanIssue = currentUserContext.HasPermission(PermissionCodes.InventoryStockIssue);
         Lines.Add(new IssueLineViewModel());
         _ = InitializeAsync();
     }
@@ -95,7 +95,7 @@ public sealed partial class StockIssueViewModel : ObservableObject
 
     private bool CanSave()
     {
-        return !IsBusy && CanWrite && SelectedWarehouse is not null;
+        return !IsBusy && CanIssue && SelectedWarehouse is not null;
     }
 
     [RelayCommand(CanExecute = nameof(CanSearchItems))]
@@ -135,7 +135,7 @@ public sealed partial class StockIssueViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanSave))]
     private async Task SaveAsync()
     {
-        if (!CanWrite)
+        if (!CanIssue)
         {
             StatusMessage = "출고 등록 권한이 없습니다.";
             return;

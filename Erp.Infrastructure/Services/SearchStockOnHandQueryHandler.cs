@@ -321,7 +321,8 @@ public sealed class SearchStockOnHandQueryHandler : IInventoryQueryService
     private void DemandInventoryLookupPermission()
     {
         if (_currentUserContext.HasPermission(PermissionCodes.InventoryStockRead) ||
-            _currentUserContext.HasPermission(PermissionCodes.InventoryStockWrite) ||
+            _currentUserContext.HasPermission(PermissionCodes.InventoryStockReceipt) ||
+            _currentUserContext.HasPermission(PermissionCodes.InventoryStockIssue) ||
             _currentUserContext.HasPermission(PermissionCodes.InventoryStockAdjust))
         {
             return;

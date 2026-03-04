@@ -134,7 +134,7 @@
                     Width="130"
                     Height="32"
                     Content="입고 저장"
-                    IsEnabled="{Binding CanWrite}"
+                    IsEnabled="{Binding CanReceipt}"
                     Command="{Binding SaveCommand}" />
         </DockPanel>
 

@@ -58,7 +58,7 @@ public sealed class InventoryStockViewModel : PlaceholderPageViewModel
     }
 }
 
-[RequiredPermission(PermissionCodes.InventoryStockWrite)]
+[RequiredPermission(PermissionCodes.InventoryStockReceipt)]
 public sealed class InventoryInOutViewModel : PlaceholderPageViewModel
 {
     public InventoryInOutViewModel() : base("입출고", "입출고 처리 화면(placeholder)")
@@ -66,7 +66,7 @@ public sealed class InventoryInOutViewModel : PlaceholderPageViewModel
     }
 }
 
-[RequiredPermission(PermissionCodes.InventoryStockWrite)]
+[RequiredPermission(PermissionCodes.InventoryStockAdjust)]
 public sealed class InventoryAdjustmentViewModel : PlaceholderPageViewModel
 {
     public InventoryAdjustmentViewModel() : base("재고조정", "재고조정 처리 화면(placeholder)")
@@ -122,10 +122,3 @@ public sealed class AccountReportsViewModel : PlaceholderPageViewModel
     }
 }
 
-[RequiredPermission(PermissionCodes.AuditRead)]
-public sealed class AuditLogViewModel : PlaceholderPageViewModel
-{
-    public AuditLogViewModel() : base("감사로그", "감사로그 조회 화면(placeholder)")
-    {
-    }
-}

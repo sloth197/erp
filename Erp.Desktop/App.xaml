@@ -5,8 +5,18 @@
              xmlns:vms="clr-namespace:Erp.Desktop.ViewModels">
     <Application.Resources>
         <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Themes/Colors.xaml" />
+                <ResourceDictionary Source="Themes/Typography.xaml" />
+                <ResourceDictionary Source="Themes/Controls.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
             <DataTemplate DataType="{x:Type vms:LoginViewModel}">
                 <views:LoginView />
+            </DataTemplate>
+
+            <DataTemplate DataType="{x:Type vms:SignupViewModel}">
+                <views:SignupView />
             </DataTemplate>
 
             <DataTemplate DataType="{x:Type vms:HomeViewModel}">
@@ -47,6 +57,10 @@
 
             <DataTemplate DataType="{x:Type vms:CodeExplorerViewModel}">
                 <views:CodeExplorerView />
+            </DataTemplate>
+
+            <DataTemplate DataType="{x:Type vms:AuditLogViewModel}">
+                <views:AuditLogView />
             </DataTemplate>
 
             <DataTemplate DataType="{x:Type vms:PlaceholderPageViewModel}">

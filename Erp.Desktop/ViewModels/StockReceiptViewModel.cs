@@ -8,7 +8,7 @@ using Erp.Desktop.Navigation;
 
 namespace Erp.Desktop.ViewModels;
 
-[RequiredPermission(PermissionCodes.InventoryStockWrite)]
+[RequiredPermission(PermissionCodes.InventoryStockReceipt)]
 public sealed partial class StockReceiptViewModel : ObservableObject
 {
     private readonly IInventoryCommandService _inventoryCommandService;
@@ -58,7 +58,7 @@ public sealed partial class StockReceiptViewModel : ObservableObject
     [ObservableProperty]
     private string? statusMessage;
 
-    public bool CanWrite { get; }
+    public bool CanReceipt { get; }
 
     public StockReceiptViewModel(
         IInventoryCommandService inventoryCommandService,
@@ -68,7 +68,7 @@ public sealed partial class StockReceiptViewModel : ObservableObject
         _inventoryCommandService = inventoryCommandService;
         _inventoryQueryService = inventoryQueryService;
 
-        CanWrite = currentUserContext.HasPermission(PermissionCodes.InventoryStockWrite);
+        CanReceipt = currentUserContext.HasPermission(PermissionCodes.InventoryStockReceipt);
         Lines.Add(new ReceiptLineViewModel());
         _ = InitializeAsync();
     }
@@ -90,7 +90,7 @@ public sealed partial class StockReceiptViewModel : ObservableObject
 
     private bool CanSave()
     {
-        return !IsBusy && CanWrite && SelectedWarehouse is not null;
+        return !IsBusy && CanReceipt && SelectedWarehouse is not null;
     }
 
     [RelayCommand(CanExecute = nameof(CanSearchItems))]
@@ -130,7 +130,7 @@ public sealed partial class StockReceiptViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanSave))]
     private async Task SaveAsync()
     {
-        if (!CanWrite)
+        if (!CanReceipt)
         {
             StatusMessage = "입고 등록 권한이 없습니다.";
             return;

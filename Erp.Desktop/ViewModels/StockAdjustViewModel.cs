@@ -8,7 +8,7 @@ using Erp.Desktop.Navigation;
 
 namespace Erp.Desktop.ViewModels;
 
-[RequiredPermission(PermissionCodes.InventoryStockWrite)]
+[RequiredPermission(PermissionCodes.InventoryStockAdjust)]
 public sealed partial class StockAdjustViewModel : ObservableObject
 {
     private readonly IInventoryCommandService _inventoryCommandService;
@@ -71,8 +71,7 @@ public sealed partial class StockAdjustViewModel : ObservableObject
         _inventoryCommandService = inventoryCommandService;
         _inventoryQueryService = inventoryQueryService;
 
-        CanAdjust = currentUserContext.HasPermission(PermissionCodes.InventoryStockWrite)
-            || currentUserContext.HasPermission(PermissionCodes.InventoryStockAdjust);
+        CanAdjust = currentUserContext.HasPermission(PermissionCodes.InventoryStockAdjust);
 
         Lines.Add(new AdjustLineViewModel());
         _ = InitializeAsync();

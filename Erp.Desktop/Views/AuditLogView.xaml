@@ -1,0 +1,146 @@
+﻿<UserControl x:Class="Erp.Desktop.Views.AuditLogView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+    </UserControl.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="Audit Log" FontSize="22" FontWeight="SemiBold" />
+
+        <Border Grid.Row="1"
+                Margin="0,12,0,10"
+                Padding="12"
+                BorderBrush="#D0D7E2"
+                BorderThickness="1"
+                CornerRadius="6">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.2*" />
+                    <ColumnDefinition Width="1.2*" />
+                    <ColumnDefinition Width="1.6*" />
+                    <ColumnDefinition Width="1.6*" />
+                    <ColumnDefinition Width="1.8*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                    <TextBlock Text="From" Margin="0,0,0,4" />
+                    <DatePicker SelectedDate="{Binding FromDate}" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Margin="0,0,8,0">
+                    <TextBlock Text="To" Margin="0,0,0,4" />
+                    <DatePicker SelectedDate="{Binding ToDate}" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Margin="0,0,8,0">
+                    <TextBlock Text="Action" Margin="0,0,0,4" />
+                    <TextBox Text="{Binding ActionKeyword, UpdateSourceTrigger=PropertyChanged}" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="3" Margin="0,0,8,0">
+                    <TextBlock Text="Actor" Margin="0,0,0,4" />
+                    <TextBox Text="{Binding ActorKeyword, UpdateSourceTrigger=PropertyChanged}" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="4" Margin="0,0,8,0">
+                    <TextBlock Text="TxNo/Keyword" Margin="0,0,0,4" />
+                    <TextBox Text="{Binding TxNoKeyword, UpdateSourceTrigger=PropertyChanged}" />
+                </StackPanel>
+
+                <Button Grid.Column="5"
+                        Content="Search"
+                        Width="72"
+                        Height="30"
+                        Margin="0,20,8,0"
+                        VerticalAlignment="Top"
+                        Command="{Binding SearchCommand}" />
+
+                <Button Grid.Column="6"
+                        Content="Refresh"
+                        Width="84"
+                        Height="30"
+                        Margin="0,20,0,0"
+                        VerticalAlignment="Top"
+                        Command="{Binding LoadCommand}" />
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <DockPanel Grid.Row="0" Margin="0,0,0,8">
+                <TextBlock DockPanel.Dock="Left"
+                           VerticalAlignment="Center"
+                           Foreground="#667085"
+                           Text="{Binding TotalCount, StringFormat=Total {0:N0}}" />
+
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="Page size" Margin="0,0,6,0" VerticalAlignment="Center" />
+                    <ComboBox Width="70"
+                              ItemsSource="{Binding PageSizes}"
+                              SelectedItem="{Binding PageSize}" />
+                    <Button Content="Prev"
+                            Width="56"
+                            Margin="10,0,0,0"
+                            Command="{Binding PreviousPageCommand}" />
+                    <TextBlock Margin="8,0"
+                               VerticalAlignment="Center"
+                               Text="{Binding Page, StringFormat={}{0} / }" />
+                    <TextBlock Margin="0,0,8,0"
+                               VerticalAlignment="Center"
+                               Text="{Binding TotalPages}" />
+                    <Button Content="Next"
+                            Width="56"
+                            Command="{Binding NextPageCommand}" />
+                </StackPanel>
+            </DockPanel>
+
+            <DataGrid Grid.Row="1"
+                      ItemsSource="{Binding Rows}"
+                      AutoGenerateColumns="False"
+                      IsReadOnly="True"
+                      EnableRowVirtualization="True"
+                      EnableColumnVirtualization="True"
+                      VirtualizingPanel.IsVirtualizing="True"
+                      VirtualizingPanel.ScrollUnit="Pixel"
+                      ScrollViewer.CanContentScroll="True">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="CreatedAtUtc" Binding="{Binding CreatedAtUtc, StringFormat=yyyy-MM-dd HH:mm:ss}" Width="170" />
+                    <DataGridTextColumn Header="Action" Binding="{Binding Action}" Width="180" />
+                    <DataGridTextColumn Header="Actor" Binding="{Binding ActorUsername}" Width="120" />
+                    <DataGridTextColumn Header="Target(TxNo)" Binding="{Binding Target}" Width="220" />
+                    <DataGridTextColumn Header="Detail" Binding="{Binding DetailJson}" Width="2.4*" />
+                    <DataGridTextColumn Header="IP" Binding="{Binding Ip}" Width="120" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </Grid>
+
+        <TextBlock Grid.Row="3"
+                   Margin="0,10,0,0"
+                   Foreground="#B00020"
+                   Text="{Binding StatusMessage}"
+                   TextWrapping="Wrap" />
+
+        <Border Grid.RowSpan="4"
+                Background="#70FFFFFF"
+                Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                <ProgressBar Width="220" Height="10" IsIndeterminate="True" />
+                <TextBlock Margin="0,10,0,0" Text="Loading audit logs..." />
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

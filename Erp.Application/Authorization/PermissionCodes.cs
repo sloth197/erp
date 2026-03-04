@@ -14,7 +14,8 @@ public static class PermissionCodes
     public const string MasterPartnersWrite = "Master.Partners.Write";
 
     public const string InventoryStockRead = "Inventory.Stock.Read";
-    public const string InventoryStockWrite = "Inventory.Stock.Write";
+    public const string InventoryStockReceipt = "Inventory.Stock.Receipt";
+    public const string InventoryStockIssue = "Inventory.Stock.Issue";
     public const string InventoryStockAdjust = "Inventory.Stock.Adjust";
 
     public const string PurchaseOrdersRead = "Purchase.Orders.Read";
@@ -37,7 +38,8 @@ public static class PermissionCodes
         MasterPartnersRead,
         MasterPartnersWrite,
         InventoryStockRead,
-        InventoryStockWrite,
+        InventoryStockReceipt,
+        InventoryStockIssue,
         InventoryStockAdjust,
         PurchaseOrdersRead,
         PurchaseOrdersWrite,
