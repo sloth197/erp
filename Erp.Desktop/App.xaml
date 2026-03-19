@@ -11,6 +11,8 @@
                 <ResourceDictionary Source="Themes/Controls.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
+            <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+
             <DataTemplate DataType="{x:Type vms:LoginViewModel}">
                 <views:LoginView />
             </DataTemplate>

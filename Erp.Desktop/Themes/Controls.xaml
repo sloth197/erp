@@ -98,26 +98,66 @@
         <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
 
-    <Style x:Key="SidebarMenuButtonStyle"
-           TargetType="Button"
-           BasedOn="{StaticResource {x:Type Button}}">
+    <Style x:Key="SidebarMenuButtonStyle" TargetType="Button">
+        <Setter Property="FontFamily" Value="{StaticResource FontFamily.App}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="MinHeight" Value="36" />
+        <Setter Property="Cursor" Value="Hand" />
         <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="Margin" Value="0,0,0,6" />
         <Setter Property="Padding" Value="12,9" />
-        <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Foreground" Value="{StaticResource Brush.TextInverse}" />
-        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Background" Value="#14243F" />
+        <Setter Property="Foreground" Value="#F5FAFF" />
+        <Setter Property="BorderBrush" Value="#22314F" />
         <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Root"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="4">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                          Margin="{TemplateBinding Padding}" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Background" Value="#22314F" />
-                <Setter Property="BorderBrush" Value="#2D426A" />
+                <Setter Property="Background" Value="#28507D" />
+                <Setter Property="BorderBrush" Value="#5C8CC4" />
+                <Setter Property="Foreground" Value="#FFFFFF" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Background" Value="#1D3E66" />
+                <Setter Property="BorderBrush" Value="#4E79AC" />
+                <Setter Property="Foreground" Value="#FFFFFF" />
             </Trigger>
             <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                <Setter Property="Background" Value="{StaticResource Brush.AccentSoft}" />
-                <Setter Property="BorderBrush" Value="{StaticResource Brush.Accent}" />
-                <Setter Property="Foreground" Value="{StaticResource Brush.TextPrimary}" />
+                <Setter Property="Background" Value="#DDEBFF" />
+                <Setter Property="BorderBrush" Value="#2A65C4" />
+                <Setter Property="Foreground" Value="#0F172A" />
             </DataTrigger>
+            <MultiDataTrigger>
+                <MultiDataTrigger.Conditions>
+                    <Condition Binding="{Binding IsSelected}" Value="True" />
+                    <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}" Value="True" />
+                </MultiDataTrigger.Conditions>
+                <Setter Property="Background" Value="#CFE2FF" />
+                <Setter Property="BorderBrush" Value="#2458AD" />
+                <Setter Property="Foreground" Value="#0F172A" />
+            </MultiDataTrigger>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Opacity" Value="1" />
+                <Setter Property="Background" Value="#1B2E4D" />
+                <Setter Property="BorderBrush" Value="#29446B" />
+                <Setter Property="Foreground" Value="#D5E2F5" />
+            </Trigger>
         </Style.Triggers>
     </Style>
 

@@ -24,6 +24,7 @@ public partial class App : System.Windows.Application
     {
         base.OnStartup(e);
         RegisterGlobalExceptionHandlers();
+        LoadDotEnvIfExists();
 
         _host = Host.CreateDefaultBuilder()
             .ConfigureAppConfiguration((_, configBuilder) =>
@@ -35,10 +36,17 @@ public partial class App : System.Windows.Application
             {
                 services.AddInfrastructure(context.Configuration);
 
+                var authApiBaseUrl = ResolveValue(context.Configuration["AuthApi:BaseUrl"]);
+                if (string.IsNullOrWhiteSpace(authApiBaseUrl))
+                {
+                    authApiBaseUrl = "http://localhost:5183";
+                }
+
                 services.AddSingleton<IUserMessageService, UserMessageService>();
                 services.AddSingleton<IFileSaveDialogService, FileSaveDialogService>();
                 services.AddSingleton<IItemCsvExportService, ItemCsvExportService>();
                 services.AddSingleton<ICodeExplorerService, CodeExplorerService>();
+                services.AddSingleton<IAuthApiClient>(_ => new AuthApiClient(authApiBaseUrl));
 
                 services.AddSingleton<Navigation.INavigationService, Navigation.NavigationService>();
 
@@ -190,6 +198,103 @@ public partial class App : System.Windows.Application
         catch
         {
             // Ignore fallback logging failures.
+        }
+    }
+
+    private static string? ResolveValue(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return value;
+        }
+
+        var trimmed = value.Trim();
+        if (trimmed.StartsWith("${", StringComparison.Ordinal) && trimmed.EndsWith("}", StringComparison.Ordinal))
+        {
+            var envName = trimmed[2..^1];
+            return Environment.GetEnvironmentVariable(envName);
+        }
+
+        return trimmed;
+    }
+
+    private static void LoadDotEnvIfExists()
+    {
+        foreach (var path in EnumerateDotEnvCandidates())
+        {
+            if (!File.Exists(path))
+            {
+                continue;
+            }
+
+            foreach (var line in File.ReadAllLines(path))
+            {
+                var trimmed = line.Trim();
+                if (string.IsNullOrWhiteSpace(trimmed) || trimmed.StartsWith("#", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                var separatorIndex = trimmed.IndexOf('=');
+                if (separatorIndex <= 0)
+                {
+                    continue;
+                }
+
+                var key = trimmed[..separatorIndex].Trim();
+                if (string.IsNullOrWhiteSpace(key))
+                {
+                    continue;
+                }
+
+                var value = trimmed[(separatorIndex + 1)..].Trim();
+                if (value.Length >= 2 &&
+                    ((value.StartsWith("\"", StringComparison.Ordinal) && value.EndsWith("\"", StringComparison.Ordinal)) ||
+                     (value.StartsWith("'", StringComparison.Ordinal) && value.EndsWith("'", StringComparison.Ordinal))))
+                {
+                    value = value[1..^1];
+                }
+
+                Environment.SetEnvironmentVariable(key, value, EnvironmentVariableTarget.Process);
+            }
+
+            return;
+        }
+    }
+
+    private static IEnumerable<string> EnumerateDotEnvCandidates()
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var roots = new[]
+        {
+            Directory.GetCurrentDirectory(),
+            AppContext.BaseDirectory
+        };
+
+        foreach (var root in roots)
+        {
+            if (string.IsNullOrWhiteSpace(root))
+            {
+                continue;
+            }
+
+            var current = root;
+            for (var depth = 0; depth < 8 && !string.IsNullOrWhiteSpace(current); depth++)
+            {
+                var candidate = Path.Combine(current, ".env");
+                if (seen.Add(candidate))
+                {
+                    yield return candidate;
+                }
+
+                var parent = Directory.GetParent(current);
+                if (parent is null)
+                {
+                    break;
+                }
+
+                current = parent.FullName;
+            }
         }
     }
 }

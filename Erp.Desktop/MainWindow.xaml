@@ -103,9 +103,11 @@
                                         <ItemsControl ItemsSource="{Binding Items}">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
-                                                    <Button Content="{Binding Title}"
-                                                            Command="{Binding Command}"
-                                                            Style="{StaticResource SidebarMenuButtonStyle}" />
+                                                    <Button Command="{Binding Command}"
+                                                            Style="{StaticResource SidebarMenuButtonStyle}">
+                                                        <TextBlock Text="{Binding Title}"
+                                                                   Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                                                    </Button>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>

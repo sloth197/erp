@@ -24,6 +24,7 @@ public sealed class ErpDbContext : DbContext
     public DbSet<UserRole> UserRoles => Set<UserRole>();
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<EmailVerificationCode> EmailVerificationCodes => Set<EmailVerificationCode>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -44,6 +45,7 @@ public sealed class ErpDbContext : DbContext
         ConfigureUserRoles(modelBuilder);
         ConfigureRolePermissions(modelBuilder);
         ConfigureAuditLogs(modelBuilder);
+        ConfigureEmailVerificationCodes(modelBuilder);
     }
 
     private static void ConfigureItems(ModelBuilder modelBuilder)
@@ -695,5 +697,66 @@ public sealed class ErpDbContext : DbContext
 
         audit.HasIndex(x => x.CreatedAtUtc);
         audit.HasIndex(x => x.ActorUserId);
+    }
+
+    private static void ConfigureEmailVerificationCodes(ModelBuilder modelBuilder)
+    {
+        var code = modelBuilder.Entity<EmailVerificationCode>();
+        code.ToTable("email_verification_codes");
+        code.HasKey(x => x.Id);
+
+        code.Property(x => x.Id)
+            .HasColumnName("id");
+
+        code.Property(x => x.Email)
+            .HasColumnName("email")
+            .HasMaxLength(320)
+            .IsRequired();
+
+        code.Property(x => x.Purpose)
+            .HasColumnName("purpose")
+            .HasMaxLength(50)
+            .IsRequired();
+
+        code.Property(x => x.CodeHash)
+            .HasColumnName("code_hash")
+            .HasMaxLength(256)
+            .IsRequired();
+
+        code.Property(x => x.AttemptCount)
+            .HasColumnName("attempt_count")
+            .IsRequired();
+
+        code.Property(x => x.MaxAttemptCount)
+            .HasColumnName("max_attempt_count")
+            .IsRequired();
+
+        code.Property(x => x.CreatedAtUtc)
+            .HasColumnName("created_at_utc")
+            .IsRequired();
+
+        code.Property(x => x.LastSentAtUtc)
+            .HasColumnName("last_sent_at_utc")
+            .IsRequired();
+
+        code.Property(x => x.ExpiresAtUtc)
+            .HasColumnName("expires_at_utc")
+            .IsRequired();
+
+        code.Property(x => x.LastAttemptAtUtc)
+            .HasColumnName("last_attempt_at_utc");
+
+        code.Property(x => x.VerifiedAtUtc)
+            .HasColumnName("verified_at_utc");
+
+        code.Property(x => x.IsRevoked)
+            .HasColumnName("is_revoked")
+            .IsRequired()
+            .HasDefaultValue(false);
+
+        code.HasIndex(x => new { x.Email, x.Purpose });
+        code.HasIndex(x => x.ExpiresAtUtc);
+        code.HasIndex(x => x.CreatedAtUtc);
+        code.HasIndex(x => x.VerifiedAtUtc);
     }
 }

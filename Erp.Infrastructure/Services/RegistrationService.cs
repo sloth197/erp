@@ -86,7 +86,7 @@ public sealed class RegistrationService : IRegistrationService
             return null;
         }
 
-        return value.Trim();
+        return value.Trim().ToLowerInvariant();
     }
 
     private static string SerializeDetail(object detail)
