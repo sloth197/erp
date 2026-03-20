@@ -1,3 +1,4 @@
+﻿using System.Net;
 using System.Net.Mail;
 using System.Security.Cryptography;
 using System.Text;
@@ -7,6 +8,7 @@ using Erp.Application.Interfaces;
 using Erp.Domain.Entities;
 using Erp.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+
 
 namespace Erp.Infrastructure.Services;
 
@@ -81,9 +83,16 @@ public sealed class EmailVerificationService : IEmailVerificationService
 
         await db.SaveChangesAsync(cancellationToken);
 
+        var requestAtLocal = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(now, "Korea Standard Time");
+
         var textBody =
-            $"Your ERP verification code is: {code}{Environment.NewLine}" +
-            $"This code expires at {expiresAtUtc:O}.";
+            $"안녕하세요, ERP입니다.{Environment.NewLine}{Environment.NewLine}" +
+            $"회원가입을 위해 이메일 인증이 필요합니다.{Environment.NewLine}" +
+            $"아래 인증번호를 입력창에 입력해 주세요.{Environment.NewLine}{Environment.NewLine}" +
+            $"인증번호: {code}{Environment.NewLine}{Environment.NewLine}" +
+            "본 메일은 발신 전용입니다.";
+
+        var htmlBody = BuildSignUpVerificationHtml(code, requestAtLocal);
 
         try
         {
@@ -91,8 +100,9 @@ public sealed class EmailVerificationService : IEmailVerificationService
                 email,
                 _options.Subject,
                 textBody,
-                htmlBody: null,
+                htmlBody,
                 cancellationToken);
+            
 
             entity.MarkSent(now);
             db.AuditLogs.Add(new AuditLog(
@@ -120,6 +130,55 @@ public sealed class EmailVerificationService : IEmailVerificationService
 
             return SendEmailVerificationCodeResult.Failed("인증번호 메일 발송에 실패했습니다.");
         }
+    }
+
+    private static string BuildSignUpVerificationHtml(string code, DateTime requestAtLocal)
+    {
+        var safeCode = WebUtility.HtmlEncode(code);
+        var requestAtText = requestAtLocal.ToString("yyyy-MM-dd HH:mm:ss");
+
+        return $"""
+<!doctype html>
+<html lang="ko">
+<body style="margin:0;padding:0;background:#f3f4f6;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="padding:24px 0;background:#f3f4f6;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="640" cellpadding="0" cellspacing="0" style="width:640px;max-width:640px;background:#ffffff;border:1px solid #d1d5db;font-family:'Malgun Gothic',sans-serif;color:#1f2937;">
+          <tr>
+            <td style="padding:24px 28px 8px 28px;font-size:32px;line-height:1.4;">안녕하세요. ERP 이메일 인증번호 테스트 중입니다.</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 28px 20px 28px;font-size:26px;line-height:1.6;">
+              회원가입을 위해 이메일 인증이 필요합니다.<br/>
+              아래 인증번호를 확인하신 후 인증 절차를 완료해 주세요.
+            </td>
+          </tr>
+          <tr>
+          </tr>
+          <tr>
+            <td style="padding:0 28px 24px 28px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #9ca3af;font-size:24px;">
+                <tr>
+                  <td style="padding:12px;border:1px solid #9ca3af;background:#f9fafb;font-weight:700;text-align:center;">인증 번호</td>
+                  <td style="padding:12px;border:1px solid #9ca3af;font-size:30px;font-weight:800;color:#111827;letter-spacing:1px;">{safeCode}</td>
+                </tr>
+                <tr>
+                  <td style="padding:12px;border:1px solid #9ca3af;background:#f9fafb;font-weight:700;text-align:center;">요청 일시</td>
+                  <td style="padding:12px;border:1px solid #9ca3af;">{requestAtText}</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+""";
     }
 
     public async Task<VerifyEmailVerificationCodeResult> VerifyCodeAsync(
