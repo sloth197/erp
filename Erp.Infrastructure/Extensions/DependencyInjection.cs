@@ -44,6 +44,7 @@ public static class DependencyInjection
         services.AddSingleton<IInventoryCommandService, InventoryCommandService>();
         services.AddSingleton<IInventoryQueryService, SearchStockOnHandQueryHandler>();
         services.AddSingleton<IAuditLogQueryService, AuditLogQueryService>();
+        services.AddSingleton<IHomeDashboardQueryService, HomeDashboardQueryService>();
 
         services.AddSingleton<IDataSeeder, ErpDataSeeder>();
 
