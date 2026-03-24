@@ -2,6 +2,10 @@
 
 public static class PermissionCodes
 {
+    public const string NoticeRead = "Notice.Read";
+    public const string NoticeWrite = "Notice.Write";
+    public const string NoticePublish = "Notice.Publish";
+
     public const string SystemSettingsRead = "System.Settings.Read";
     public const string SystemSettingsWrite = "System.Settings.Write";
 
@@ -28,6 +32,9 @@ public static class PermissionCodes
 
     public static readonly IReadOnlyList<string> All =
     [
+        NoticeRead,
+        NoticeWrite,
+        NoticePublish,
         SystemSettingsRead,
         SystemSettingsWrite,
         MasterUsersRead,

@@ -25,6 +25,10 @@
                 <views:HomeView />
             </DataTemplate>
 
+            <DataTemplate DataType="{x:Type vms:NoticesViewModel}">
+                <views:NoticesView />
+            </DataTemplate>
+
             <DataTemplate DataType="{x:Type vms:UsersManagementViewModel}">
                 <views:UsersManagementView />
             </DataTemplate>
@@ -55,18 +59,6 @@
 
             <DataTemplate DataType="{x:Type vms:StockIssueViewModel}">
                 <views:StockIssueView />
-            </DataTemplate>
-
-            <DataTemplate DataType="{x:Type vms:StockAdjustViewModel}">
-                <views:StockAdjustView />
-            </DataTemplate>
-
-            <DataTemplate DataType="{x:Type vms:CodeExplorerViewModel}">
-                <views:CodeExplorerView />
-            </DataTemplate>
-
-            <DataTemplate DataType="{x:Type vms:AuditLogViewModel}">
-                <views:AuditLogView />
             </DataTemplate>
 
             <DataTemplate DataType="{x:Type vms:PlaceholderPageViewModel}">

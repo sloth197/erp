@@ -46,28 +46,24 @@ public sealed partial class HomeViewModel : ViewModelBase
     [ObservableProperty]
     private int stockTransactionsToday;
 
-    [ObservableProperty]
-    private int auditLogsLast24Hours;
-
     public ObservableCollection<string> ImplementedModules { get; } =
     [
-        "회원가입 이메일 인증 (SMTP)",
-        "품목 관리",
-        "재고 조회 / 입고 / 출고 / 조정",
+        "대시보드",
+        "알림/공지 (UI 1차)",
+        "내 정보 / 비밀번호 변경",
         "사용자/권한 관리",
-        "감사 로그",
-        "내 정보 / 비밀번호 변경"
+        "품목 관리",
+        "재고 조회 / 입고 / 출고 등록",
+        "환경설정"
     ];
 
     public ObservableCollection<string> PlannedModules { get; } =
     [
-        "알림/공지",
         "거래처 관리",
-        "창고/로케이션 상세 관리",
-        "코드관리",
-        "구매/매입",
-        "판매/매출",
-        "회계 리포트"
+        "창고 관리",
+        "발주",
+        "주문",
+        "출고"
     ];
 
     public int ImplementedModuleCount => ImplementedModules.Count;
@@ -77,7 +73,6 @@ public sealed partial class HomeViewModel : ViewModelBase
     public bool CanOpenItems => _currentUserContext.HasPermission(PermissionCodes.MasterItemsRead);
     public bool CanOpenInventoryOnHand => _currentUserContext.HasPermission(PermissionCodes.InventoryStockRead);
     public bool CanOpenStockReceipt => _currentUserContext.HasPermission(PermissionCodes.InventoryStockReceipt);
-    public bool CanOpenAuditLog => _currentUserContext.HasPermission(PermissionCodes.AuditRead);
 
     public HomeViewModel(
         IHomeDashboardQueryService homeDashboardQueryService,
@@ -96,7 +91,6 @@ public sealed partial class HomeViewModel : ViewModelBase
     private bool CanNavigateItems() => !IsBusy && CanOpenItems;
     private bool CanNavigateInventoryOnHand() => !IsBusy && CanOpenInventoryOnHand;
     private bool CanNavigateStockReceipt() => !IsBusy && CanOpenStockReceipt;
-    private bool CanNavigateAuditLog() => !IsBusy && CanOpenAuditLog;
 
     [RelayCommand(CanExecute = nameof(CanRefresh))]
     private async Task RefreshAsync()
@@ -115,7 +109,6 @@ public sealed partial class HomeViewModel : ViewModelBase
             ActiveUserCount = summary.ActiveUserCount;
             PendingUserCount = summary.PendingUserCount;
             StockTransactionsToday = summary.StockTransactionsToday;
-            AuditLogsLast24Hours = summary.AuditLogsLast24Hours;
             LastUpdatedText = $"업데이트: {summary.SnapshotUtc.ToLocalTime():yyyy-MM-dd HH:mm:ss}";
         }
         catch (Exception ex)
@@ -152,12 +145,6 @@ public sealed partial class HomeViewModel : ViewModelBase
         _navigationService.NavigateTo<UsersManagementViewModel>();
     }
 
-    [RelayCommand(CanExecute = nameof(CanNavigateAuditLog))]
-    private void OpenAuditLog()
-    {
-        _navigationService.NavigateTo<AuditLogViewModel>();
-    }
-
     protected override void OnBusyStateChanged(bool isBusy)
     {
         RefreshCommand.NotifyCanExecuteChanged();
@@ -165,6 +152,5 @@ public sealed partial class HomeViewModel : ViewModelBase
         OpenInventoryOnHandCommand.NotifyCanExecuteChanged();
         OpenStockReceiptCommand.NotifyCanExecuteChanged();
         OpenUsersManagementCommand.NotifyCanExecuteChanged();
-        OpenAuditLogCommand.NotifyCanExecuteChanged();
     }
 }

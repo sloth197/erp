@@ -104,7 +104,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         AddGroup(
             "공통(Common)",
             new MenuEntry("대시보드(Home)", null, typeof(HomeViewModel), () => _navigationService.NavigateTo<HomeViewModel>()),
-            new MenuEntry("알림/공지", null, typeof(NoticesViewModel), () => _navigationService.NavigateTo<NoticesViewModel>()),
+            new MenuEntry("알림/공지", PermissionCodes.NoticeRead, typeof(NoticesViewModel), () => _navigationService.NavigateTo<NoticesViewModel>()),
             new MenuEntry("내 정보", null, typeof(MyInfoViewModel), () => _navigationService.NavigateTo<MyInfoViewModel>()));
 
         AddGroup(
@@ -112,36 +112,26 @@ public sealed partial class MainWindowViewModel : ObservableObject
             new MenuEntry("사용자/권한관리", PermissionCodes.MasterUsersRead, typeof(UsersManagementViewModel), () => _navigationService.NavigateTo<UsersManagementViewModel>()),
             new MenuEntry("거래처 관리", PermissionCodes.MasterPartnersRead, typeof(PartnersViewModel), () => _navigationService.NavigateTo<PartnersViewModel>()),
             new MenuEntry("품목 관리", PermissionCodes.MasterItemsRead, typeof(ItemsViewModel), () => _navigationService.NavigateTo<ItemsViewModel>()),
-            new MenuEntry("창고/로케이션 관리", PermissionCodes.MasterItemsRead, typeof(WarehousesViewModel), () => _navigationService.NavigateTo<WarehousesViewModel>()),
-            new MenuEntry("코드관리", PermissionCodes.MasterPartnersRead, typeof(CodesViewModel), () => _navigationService.NavigateTo<CodesViewModel>()));
+            new MenuEntry("창고 관리", PermissionCodes.MasterItemsRead, typeof(WarehousesViewModel), () => _navigationService.NavigateTo<WarehousesViewModel>()));
 
         AddGroup(
             "재고(Inventory)",
             new MenuEntry("재고조회", PermissionCodes.InventoryStockRead, typeof(InventoryOnHandViewModel), () => _navigationService.NavigateTo<InventoryOnHandViewModel>()),
             new MenuEntry("입고 등록", PermissionCodes.InventoryStockReceipt, typeof(StockReceiptViewModel), () => _navigationService.NavigateTo<StockReceiptViewModel>()),
-            new MenuEntry("출고 등록", PermissionCodes.InventoryStockIssue, typeof(StockIssueViewModel), () => _navigationService.NavigateTo<StockIssueViewModel>()),
-            new MenuEntry("재고조정", PermissionCodes.InventoryStockAdjust, typeof(StockAdjustViewModel), () => _navigationService.NavigateTo<StockAdjustViewModel>()));
+            new MenuEntry("출고 등록", PermissionCodes.InventoryStockIssue, typeof(StockIssueViewModel), () => _navigationService.NavigateTo<StockIssueViewModel>()));
 
         AddGroup(
             "구매/매입(Purchase)",
-            new MenuEntry("발주", PermissionCodes.PurchaseOrdersRead, typeof(PurchaseOrdersViewModel), () => _navigationService.NavigateTo<PurchaseOrdersViewModel>()),
-            new MenuEntry("입고", PermissionCodes.PurchaseOrdersWrite, typeof(PurchaseReceiptViewModel), () => _navigationService.NavigateTo<PurchaseReceiptViewModel>()));
+            new MenuEntry("발주", PermissionCodes.PurchaseOrdersRead, typeof(PurchaseOrdersViewModel), () => _navigationService.NavigateTo<PurchaseOrdersViewModel>()));
 
         AddGroup(
             "판매/매출(Sales)",
-            new MenuEntry("견적/주문", PermissionCodes.SalesOrdersRead, typeof(SalesOrdersViewModel), () => _navigationService.NavigateTo<SalesOrdersViewModel>()),
-            new MenuEntry("출고/매출", PermissionCodes.SalesOrdersWrite, typeof(SalesRevenueViewModel), () => _navigationService.NavigateTo<SalesRevenueViewModel>()));
-
-        AddGroup(
-            "회계(Accounts)",
-            new MenuEntry("매입/매출 전표", PermissionCodes.SalesOrdersRead, typeof(AccountVouchersViewModel), () => _navigationService.NavigateTo<AccountVouchersViewModel>()),
-            new MenuEntry("간단 리포트", PermissionCodes.SalesOrdersRead, typeof(AccountReportsViewModel), () => _navigationService.NavigateTo<AccountReportsViewModel>()));
+            new MenuEntry("주문", PermissionCodes.SalesOrdersRead, typeof(SalesOrdersViewModel), () => _navigationService.NavigateTo<SalesOrdersViewModel>()),
+            new MenuEntry("출고", PermissionCodes.SalesOrdersWrite, typeof(SalesRevenueViewModel), () => _navigationService.NavigateTo<SalesRevenueViewModel>()));
 
         AddGroup(
             "시스템(System)",
-            new MenuEntry("환경설정(Settings)", PermissionCodes.SystemSettingsRead, typeof(SettingsViewModel), () => _navigationService.NavigateTo<SettingsViewModel>()),
-            new MenuEntry("감사로그(Audit Log)", PermissionCodes.AuditRead, typeof(AuditLogViewModel), () => _navigationService.NavigateTo<AuditLogViewModel>()),
-            new MenuEntry("코드 보기", null, typeof(CodeExplorerViewModel), () => _navigationService.NavigateTo<CodeExplorerViewModel>()));
+            new MenuEntry("환경설정(Settings)", PermissionCodes.SystemSettingsRead, typeof(SettingsViewModel), () => _navigationService.NavigateTo<SettingsViewModel>()));
 
         UpdateSelectedMenuState();
     }

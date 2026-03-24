@@ -1,0 +1,386 @@
+<UserControl x:Class="Erp.Desktop.Views.NoticesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="clr-namespace:Erp.Desktop.Controls"
+             mc:Ignorable="d">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <DockPanel>
+            <TextBlock DockPanel.Dock="Left"
+                       FontSize="22"
+                       FontWeight="SemiBold"
+                       Text="알림/공지" />
+
+            <StackPanel DockPanel.Dock="Right"
+                        Orientation="Horizontal"
+                        VerticalAlignment="Center">
+                <Border Margin="0,0,12,0"
+                        Padding="8,3"
+                        Background="#E8EEF9"
+                        BorderBrush="#C9D7F3"
+                        BorderThickness="1"
+                        CornerRadius="12">
+                    <TextBlock FontWeight="SemiBold"
+                               Foreground="#1D4ED8"
+                               Text="{Binding UnreadSummary}" />
+                </Border>
+                <TextBlock Foreground="#667085"
+                           Text="{Binding PermissionSummary}" />
+            </StackPanel>
+        </DockPanel>
+
+        <Border Grid.Row="1"
+                Margin="0,12,0,12"
+                Padding="12"
+                BorderBrush="#D0D7E2"
+                BorderThickness="1"
+                CornerRadius="6">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2.3*" />
+                    <ColumnDefinition Width="1.2*" />
+                    <ColumnDefinition Width="1.2*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0"
+                            Margin="0,0,12,0">
+                    <TextBlock Margin="0,0,0,4"
+                               Text="검색어" />
+                    <TextBox Text="{Binding SearchCriteria.Keyword, UpdateSourceTrigger=PropertyChanged}" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1"
+                            Margin="0,0,12,0">
+                    <TextBlock Margin="0,0,0,4"
+                               Text="상태" />
+                    <ComboBox ItemsSource="{Binding StatusFilters}"
+                              SelectedItem="{Binding SearchCriteria.SelectedStatus}"
+                              DisplayMemberPath="DisplayName" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="2"
+                            Margin="0,0,12,0">
+                    <TextBlock Margin="0,0,0,4"
+                               Text="우선순위" />
+                    <ComboBox ItemsSource="{Binding PriorityFilters}"
+                              SelectedItem="{Binding SearchCriteria.SelectedPriority}"
+                              DisplayMemberPath="DisplayName" />
+                </StackPanel>
+
+                <CheckBox Grid.Column="3"
+                          Margin="0,22,12,0"
+                          VerticalAlignment="Top"
+                          Content="미읽음만"
+                          IsChecked="{Binding SearchCriteria.UnreadOnly}" />
+
+                <Button Grid.Column="4"
+                        Width="84"
+                        Height="30"
+                        Margin="0,20,8,0"
+                        VerticalAlignment="Top"
+                        Content="검색"
+                        Command="{Binding SearchCommand}" />
+
+                <Button Grid.Column="5"
+                        Width="84"
+                        Height="30"
+                        Margin="0,20,8,0"
+                        VerticalAlignment="Top"
+                        Content="새로고침"
+                        Command="{Binding LoadCommand}" />
+
+                <Button Grid.Column="6"
+                        Width="90"
+                        Height="30"
+                        Margin="0,20,8,0"
+                        VerticalAlignment="Top"
+                        Content="전체읽음"
+                        Command="{Binding MarkAllAsReadCommand}" />
+
+                <Button Grid.Column="7"
+                        Width="90"
+                        Height="30"
+                        Margin="0,20,0,0"
+                        VerticalAlignment="Top"
+                        Content="새 공지"
+                        Command="{Binding AddNoticeCommand}" />
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="3*" />
+                <ColumnDefinition Width="8" />
+                <ColumnDefinition Width="2*" />
+            </Grid.ColumnDefinitions>
+
+            <Grid Grid.Column="0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <DockPanel Grid.Row="0"
+                           Margin="0,0,0,8">
+                    <TextBlock DockPanel.Dock="Left"
+                               VerticalAlignment="Center"
+                               Foreground="#667085"
+                               Text="{Binding TotalCount, StringFormat=총 {0:N0}건}" />
+
+                    <StackPanel DockPanel.Dock="Right"
+                                Orientation="Horizontal"
+                                VerticalAlignment="Center">
+                        <TextBlock Margin="0,0,6,0"
+                                   VerticalAlignment="Center"
+                                   Text="Page Size" />
+                        <ComboBox Width="70"
+                                  ItemsSource="{Binding PageSizes}"
+                                  SelectedItem="{Binding PageSize}" />
+                        <Button Width="56"
+                                Margin="8,0,0,0"
+                                Content="Prev"
+                                Command="{Binding PreviousPageCommand}" />
+                        <TextBlock Margin="8,0"
+                                   VerticalAlignment="Center"
+                                   Text="{Binding Page, StringFormat=Page {0}}" />
+                        <TextBlock Margin="0,0,8,0"
+                                   VerticalAlignment="Center"
+                                   Text="{Binding TotalPages, StringFormat=/ {0}}" />
+                        <Button Width="56"
+                                Content="Next"
+                                Command="{Binding NextPageCommand}" />
+                    </StackPanel>
+                </DockPanel>
+
+                <Grid Grid.Row="1">
+                    <DataGrid ItemsSource="{Binding Notices}"
+                              SelectedItem="{Binding SelectedNotice}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              EnableRowVirtualization="True"
+                              EnableColumnVirtualization="True"
+                              VirtualizingPanel.IsVirtualizing="True"
+                              VirtualizingPanel.ScrollUnit="Pixel"
+                              ScrollViewer.CanContentScroll="True"
+                              CanUserResizeColumns="True"
+                              CanUserSortColumns="False"
+                              CanUserReorderColumns="False"
+                              FrozenColumnCount="1">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="제목"
+                                                Width="2.2*"
+                                                Binding="{Binding Title}" />
+                            <DataGridTextColumn Header="상태"
+                                                Width="100"
+                                                Binding="{Binding StatusDisplay}" />
+                            <DataGridTextColumn Header="우선순위"
+                                                Width="100"
+                                                Binding="{Binding PriorityDisplay}" />
+                            <DataGridCheckBoxColumn Header="고정"
+                                                    Width="75"
+                                                    Binding="{Binding IsPinned}" />
+                            <DataGridTextColumn Header="게시시작"
+                                                Width="110"
+                                                Binding="{Binding PublishFromDate, StringFormat=yyyy-MM-dd}" />
+                            <DataGridTextColumn Header="게시종료"
+                                                Width="110"
+                                                Binding="{Binding PublishToDate, StringFormat=yyyy-MM-dd}" />
+                            <DataGridTextColumn Header="읽음상태"
+                                                Width="90"
+                                                Binding="{Binding ReadStateDisplay}" />
+                            <DataGridTextColumn Header="최근수정"
+                                                Width="150"
+                                                Binding="{Binding UpdatedAtLocal, StringFormat=yyyy-MM-dd HH:mm}" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <controls:EmptyState Title="공지 없음"
+                                         Description="검색 조건에 해당하는 공지가 없습니다."
+                                         HorizontalAlignment="Center"
+                                         VerticalAlignment="Center">
+                        <controls:EmptyState.Style>
+                            <Style TargetType="controls:EmptyState">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding IsBusy}" Value="False" />
+                                            <Condition Binding="{Binding Notices.Count}" Value="0" />
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </MultiDataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </controls:EmptyState.Style>
+                    </controls:EmptyState>
+                </Grid>
+            </Grid>
+
+            <GridSplitter Grid.Column="1"
+                          Width="8"
+                          HorizontalAlignment="Stretch"
+                          VerticalAlignment="Stretch"
+                          ResizeBehavior="PreviousAndNext"
+                          ResizeDirection="Columns"
+                          Background="#E5E7EB" />
+
+            <Border Grid.Column="2"
+                    Padding="12"
+                    BorderBrush="#D0D7E2"
+                    BorderThickness="1"
+                    CornerRadius="6">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <DockPanel Margin="0,0,0,8">
+                            <TextBlock DockPanel.Dock="Left"
+                                       FontWeight="SemiBold"
+                                       Text="{Binding DetailHeader}" />
+                            <TextBlock DockPanel.Dock="Right"
+                                       Foreground="#667085"
+                                       Text="{Binding SelectedNotice.StatusDisplay, TargetNullValue=-}" />
+                        </DockPanel>
+
+                        <DockPanel Margin="0,0,0,10">
+                            <TextBlock DockPanel.Dock="Left"
+                                       Foreground="#667085"
+                                       Text="{Binding SelectedNotice.CreatedBy, StringFormat=작성자: {0}}" />
+                            <TextBlock DockPanel.Dock="Right"
+                                       Foreground="#667085"
+                                       Text="{Binding SelectedNotice.UpdatedAtLocal, StringFormat=수정: {0:yyyy-MM-dd HH:mm}}" />
+                        </DockPanel>
+
+                        <controls:ValidationSummary Margin="0,0,0,10"
+                                                    Errors="{Binding ValidationErrors}"
+                                                    HasErrors="{Binding HasValidationErrors}" />
+
+                        <Grid Margin="0,0,0,12"
+                              IsEnabled="{Binding CanWrite}">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="100" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Row="0"
+                                       Grid.Column="0"
+                                       Margin="0,0,8,8"
+                                       VerticalAlignment="Center"
+                                       Text="제목" />
+                            <TextBox Grid.Row="0"
+                                     Grid.Column="1"
+                                     Margin="0,0,0,8"
+                                     Text="{Binding Editor.Title, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <TextBlock Grid.Row="1"
+                                       Grid.Column="0"
+                                       Margin="0,0,8,8"
+                                       VerticalAlignment="Center"
+                                       Text="우선순위" />
+                            <ComboBox Grid.Row="1"
+                                      Grid.Column="1"
+                                      Margin="0,0,0,8"
+                                      ItemsSource="{Binding PriorityEditOptions}"
+                                      SelectedItem="{Binding Editor.SelectedPriority}"
+                                      DisplayMemberPath="DisplayName" />
+
+                            <TextBlock Grid.Row="2"
+                                       Grid.Column="0"
+                                       Margin="0,0,8,8"
+                                       VerticalAlignment="Center"
+                                       Text="게시기간" />
+                            <Grid Grid.Row="2"
+                                  Grid.Column="1"
+                                  Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="24" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <DatePicker Grid.Column="0"
+                                            SelectedDate="{Binding Editor.PublishFromDate}" />
+                                <TextBlock Grid.Column="1"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           Text="~" />
+                                <DatePicker Grid.Column="2"
+                                            SelectedDate="{Binding Editor.PublishToDate}" />
+                                <CheckBox Grid.Column="3"
+                                          Margin="10,0,0,0"
+                                          VerticalAlignment="Center"
+                                          Content="상단 고정"
+                                          IsChecked="{Binding Editor.IsPinned}" />
+                            </Grid>
+
+                            <TextBlock Grid.Row="3"
+                                       Grid.Column="0"
+                                       Margin="0,0,8,8"
+                                       VerticalAlignment="Top"
+                                       Text="본문" />
+                            <TextBox Grid.Row="3"
+                                     Grid.Column="1"
+                                     Grid.RowSpan="2"
+                                     Height="220"
+                                     TextWrapping="Wrap"
+                                     AcceptsReturn="True"
+                                     VerticalScrollBarVisibility="Auto"
+                                     Text="{Binding Editor.Body, UpdateSourceTrigger=PropertyChanged}" />
+                        </Grid>
+
+                        <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Right">
+                            <Button Width="70"
+                                    Margin="0,0,8,0"
+                                    Content="저장"
+                                    Command="{Binding SaveNoticeCommand}" />
+                            <Button Width="70"
+                                    Margin="0,0,8,0"
+                                    Content="취소"
+                                    Command="{Binding CancelEditCommand}" />
+                            <Button Width="70"
+                                    Margin="0,0,8,0"
+                                    Content="게시"
+                                    Command="{Binding PublishSelectedNoticeCommand}" />
+                            <Button Width="86"
+                                    Margin="0,0,8,0"
+                                    Content="게시중지"
+                                    Command="{Binding StopPublishSelectedNoticeCommand}" />
+                            <Button Width="86"
+                                    Content="읽음처리"
+                                    Command="{Binding MarkSelectedAsReadCommand}" />
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+
+        <controls:MessageBar Grid.Row="3"
+                             Margin="0,10,0,0"
+                             Message="{Binding UserMessage.Text}"
+                             Kind="{Binding UserMessage.Kind}"
+                             IsOpen="{Binding HasUserMessage}" />
+
+        <controls:BusyOverlay Grid.RowSpan="4"
+                              IsBusy="{Binding IsBusy}"
+                              Message="{Binding BusyMessage}" />
+    </Grid>
+</UserControl>

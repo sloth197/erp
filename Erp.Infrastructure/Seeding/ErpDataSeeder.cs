@@ -41,6 +41,7 @@ public sealed class ErpDataSeeder : IDataSeeder
 
         var staffPermissions = new[]
         {
+            PermissionCodes.NoticeRead,
             PermissionCodes.MasterItemsRead,
             PermissionCodes.MasterItemsExport,
             PermissionCodes.MasterPartnersRead,

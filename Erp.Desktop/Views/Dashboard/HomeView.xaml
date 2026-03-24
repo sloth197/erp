@@ -68,9 +68,9 @@
 
                     <Border Margin="0,0,10,10" Padding="12" Background="White" BorderBrush="#D0D7E2" BorderThickness="1" CornerRadius="8">
                         <StackPanel>
-                            <TextBlock Text="감사 로그(24시간)" FontSize="12" Foreground="#667085" />
-                            <TextBlock Text="{Binding AuditLogsLast24Hours, StringFormat={}{0:N0}}" FontSize="24" FontWeight="SemiBold" />
-                            <TextBlock Text="로그인/작업 이력" Foreground="#475467" />
+                            <TextBlock Text="남은 필수 기능" FontSize="12" Foreground="#667085" />
+                            <TextBlock Text="{Binding PlannedModuleCount, StringFormat={}{0:N0}}" FontSize="24" FontWeight="SemiBold" />
+                            <TextBlock Text="우선 구현 대상" Foreground="#475467" />
                         </StackPanel>
                     </Border>
 
@@ -91,7 +91,6 @@
                             <Button Content="재고 조회" Margin="0,0,8,8" Command="{Binding OpenInventoryOnHandCommand}" IsEnabled="{Binding CanOpenInventoryOnHand}" />
                             <Button Content="입고 등록" Margin="0,0,8,8" Command="{Binding OpenStockReceiptCommand}" IsEnabled="{Binding CanOpenStockReceipt}" />
                             <Button Content="사용자/권한" Margin="0,0,8,8" Command="{Binding OpenUsersManagementCommand}" IsEnabled="{Binding CanOpenUsers}" />
-                            <Button Content="감사 로그" Margin="0,0,8,8" Command="{Binding OpenAuditLogCommand}" IsEnabled="{Binding CanOpenAuditLog}" />
                         </WrapPanel>
                     </StackPanel>
                 </Border>
