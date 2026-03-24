@@ -23,131 +23,35 @@
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
-                    <Border Margin="0,0,0,10" Padding="12" BorderThickness="1" BorderBrush="#D0D7E2" CornerRadius="6">
-                        <StackPanel>
-                            <TextBlock Text="사용자 추가" FontWeight="SemiBold" Margin="0,0,0,8" />
-                            <WrapPanel>
-                                <TextBlock Text="아이디" VerticalAlignment="Center" Margin="0,0,6,0" />
-                                <TextBox Width="140" Text="{Binding NewUsername, UpdateSourceTrigger=PropertyChanged}" />
-
-                                <TextBlock Text="비밀번호" VerticalAlignment="Center" Margin="14,0,6,0" />
-                                <PasswordBox Width="140" PasswordChanged="CreatePasswordBox_OnPasswordChanged" />
-
-                                <TextBlock Text="기본역할" VerticalAlignment="Center" Margin="14,0,6,0" />
-                                <ComboBox Width="140" ItemsSource="{Binding Roles}" SelectedItem="{Binding SelectedRoleForCreate}" />
-
-                                <Button Content="사용자 생성" Margin="14,0,0,0" Command="{Binding CreateUserCommand}" />
-                                <Button Content="새로고침" Margin="8,0,0,0" Command="{Binding RefreshCommand}" />
-                            </WrapPanel>
-                        </StackPanel>
-                    </Border>
-
-                    <Grid Grid.Row="1">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
-                        </Grid.RowDefinitions>
-
-                        <WrapPanel Margin="0,0,0,8">
-                            <TextBlock Text="선택 사용자 역할 부여:" VerticalAlignment="Center" />
-                            <ComboBox Width="150" Margin="8,0,0,0" ItemsSource="{Binding Roles}" SelectedItem="{Binding SelectedRoleForAssign}" />
-                            <Button Content="역할 부여" Margin="8,0,0,0" Command="{Binding AssignRoleCommand}" />
-                            <Button Content="비활성" Margin="8,0,0,0" Command="{Binding DisableSelectedUserCommand}" />
-                        </WrapPanel>
-
-                        <DataGrid Grid.Row="1"
-                                  ItemsSource="{Binding Users}"
-                                  SelectedItem="{Binding SelectedUser}"
-                                  AutoGenerateColumns="False"
-                                  IsReadOnly="True">
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="Username" Binding="{Binding Username}" Width="*" />
-                                <DataGridCheckBoxColumn Header="IsActive" Binding="{Binding IsActive}" Width="90" />
-                                <DataGridTextColumn Header="Failed" Binding="{Binding FailedLoginCount}" Width="70" />
-                                <DataGridTextColumn Header="LockoutEndUtc" Binding="{Binding LockoutEndUtc}" Width="170" />
-                                <DataGridTextColumn Header="Roles" Binding="{Binding RolesDisplay}" Width="220" />
-                            </DataGrid.Columns>
-                        </DataGrid>
-                    </Grid>
-                </Grid>
-            </TabItem>
-
-            <TabItem Header="승인 관리">
-                <TabItem.Style>
-                    <Style TargetType="TabItem">
-                        <Setter Property="Visibility" Value="Collapsed" />
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding CanManageApprovals}" Value="True">
-                                <Setter Property="Visibility" Value="Visible" />
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </TabItem.Style>
-
-                <Grid Margin="12">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
-
-                    <WrapPanel Margin="0,0,0,10">
-                        <TextBlock Text="검색" VerticalAlignment="Center" Margin="0,0,6,0" />
-                        <TextBox Width="220" Text="{Binding PendingKeyword, UpdateSourceTrigger=PropertyChanged}" />
-
-                        <TextBlock Text="Status" VerticalAlignment="Center" Margin="12,0,6,0" />
-                        <ComboBox Width="130"
-                                  ItemsSource="{Binding PendingStatusFilters}"
-                                  SelectedItem="{Binding SelectedPendingStatus}"
-                                  DisplayMemberPath="DisplayName" />
-
-                        <Button Content="검색" Margin="8,0,0,0" Command="{Binding RefreshPendingUsersCommand}" />
-                        <Button Content="목록 새로고침" Margin="8,0,0,0" Command="{Binding RefreshPendingUsersCommand}" />
+                    <WrapPanel Margin="0,0,0,8">
+                        <TextBlock Text="선택 사용자 역할 부여 (Staff/Admin):" VerticalAlignment="Center" />
+                        <ComboBox Width="150"
+                                  Margin="8,0,0,0"
+                                  ItemsSource="{Binding AssignableRoles}"
+                                  SelectedItem="{Binding SelectedRoleForAssign}" />
+                        <Button Content="역할 부여" Margin="8,0,0,0" Command="{Binding AssignRoleCommand}" />
+                        <Button Content="활성화" Margin="8,0,0,0" Command="{Binding ActivateSelectedUserCommand}" />
+                        <Button Content="비활성" Margin="8,0,0,0" Command="{Binding DisableSelectedUserCommand}" />
+                        <Button Content="새로고침" Margin="8,0,0,0" Command="{Binding RefreshCommand}" />
                     </WrapPanel>
 
                     <DataGrid Grid.Row="1"
-                              ItemsSource="{Binding PendingUsers}"
-                              SelectedItem="{Binding SelectedPendingUser}"
+                              ItemsSource="{Binding Users}"
+                              SelectedItem="{Binding SelectedUser}"
                               AutoGenerateColumns="False"
                               IsReadOnly="True">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Username" Binding="{Binding Username}" Width="*" />
-                            <DataGridTextColumn Header="Email" Binding="{Binding Email}" Width="220" />
-                            <DataGridTextColumn Header="CreatedAtUtc" Binding="{Binding CreatedAtUtc, StringFormat=yyyy-MM-dd HH:mm:ss}" Width="180" />
-
-                            <DataGridTemplateColumn Header="Status" Width="130">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <controls:StatusBadge Status="{Binding StatusText}" />
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-
-                            <DataGridTemplateColumn Header="Actions" Width="270">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <StackPanel Orientation="Horizontal">
-                                            <Button Content="Approve"
-                                                    Padding="10,4"
-                                                    Margin="0,0,6,0"
-                                                    Command="{Binding DataContext.ApprovePendingUserCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                    CommandParameter="{Binding}" />
-                                            <Button Content="Reject"
-                                                    Padding="10,4"
-                                                    Margin="0,0,6,0"
-                                                    Command="{Binding DataContext.OpenRejectDialogCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                    CommandParameter="{Binding}" />
-                                            <Button Content="Disable"
-                                                    Padding="10,4"
-                                                    Command="{Binding DataContext.DisablePendingUserCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                    CommandParameter="{Binding}" />
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Status" Binding="{Binding StatusDisplay}" Width="90" />
+                            <DataGridCheckBoxColumn Header="IsActive" Binding="{Binding IsActive}" Width="90" />
+                            <DataGridTextColumn Header="Failed" Binding="{Binding FailedLoginCount}" Width="70" />
+                            <DataGridTextColumn Header="LockoutEndUtc" Binding="{Binding LockoutEndUtc}" Width="170" />
+                            <DataGridTextColumn Header="Roles" Binding="{Binding RolesDisplay}" Width="220" />
                         </DataGrid.Columns>
                     </DataGrid>
                 </Grid>
             </TabItem>
+
         </TabControl>
 
         <TextBlock Grid.Row="2"
@@ -155,36 +59,6 @@
                    Margin="0,10,0,0"
                    Foreground="#B00020"
                    TextWrapping="Wrap" />
-
-        <Grid Background="#70000000"
-              Visibility="{Binding IsRejectDialogOpen, Converter={StaticResource BoolToVisibilityConverter}}">
-            <Border Width="420"
-                    Padding="18"
-                    CornerRadius="8"
-                    BorderThickness="1"
-                    BorderBrush="#D0D7E2"
-                    Background="White"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center">
-                <StackPanel>
-                    <TextBlock Text="가입 거절" FontSize="20" FontWeight="SemiBold" />
-                    <TextBlock Margin="0,8,0,0" TextWrapping="Wrap">
-                        <Run Text="대상 사용자: " />
-                        <Run Text="{Binding RejectTargetUser.Username}" FontWeight="SemiBold" />
-                    </TextBlock>
-                    <TextBlock Margin="0,12,0,4" Text="거절 사유(선택)" />
-                    <TextBox Text="{Binding RejectReasonInput, UpdateSourceTrigger=PropertyChanged}"
-                             MinHeight="70"
-                             AcceptsReturn="True"
-                             TextWrapping="Wrap"
-                             VerticalScrollBarVisibility="Auto" />
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
-                        <Button Content="취소" Width="80" Margin="0,0,8,0" Command="{Binding CloseRejectDialogCommand}" />
-                        <Button Content="거절 확정" Width="100" Command="{Binding ConfirmRejectCommand}" />
-                    </StackPanel>
-                </StackPanel>
-            </Border>
-        </Grid>
 
         <controls:BusyOverlay IsBusy="{Binding IsBusy}" Message="처리 중..." />
     </Grid>

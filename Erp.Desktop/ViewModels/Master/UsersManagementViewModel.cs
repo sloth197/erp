@@ -23,24 +23,13 @@ public sealed partial class UsersManagementViewModel : ObservableObject
     private ObservableCollection<UserRow> users = new();
 
     [ObservableProperty]
-    private ObservableCollection<string> roles = new();
-
-    [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(DisableSelectedUserCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ActivateSelectedUserCommand))]
     [NotifyCanExecuteChangedFor(nameof(AssignRoleCommand))]
     private UserRow? selectedUser;
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(CreateUserCommand))]
-    private string newUsername = string.Empty;
-
-    [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(CreateUserCommand))]
-    private string newPassword = string.Empty;
-
-    [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(CreateUserCommand))]
-    private string selectedRoleForCreate = "Staff";
+    private ObservableCollection<string> assignableRoles = new();
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(AssignRoleCommand))]
@@ -80,8 +69,8 @@ public sealed partial class UsersManagementViewModel : ObservableObject
     private string? statusMessage;
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(CreateUserCommand))]
     [NotifyCanExecuteChangedFor(nameof(DisableSelectedUserCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ActivateSelectedUserCommand))]
     [NotifyCanExecuteChangedFor(nameof(AssignRoleCommand))]
     [NotifyCanExecuteChangedFor(nameof(ApprovePendingUserCommand))]
     [NotifyCanExecuteChangedFor(nameof(OpenRejectDialogCommand))]
@@ -112,6 +101,22 @@ public sealed partial class UsersManagementViewModel : ObservableObject
 
     public bool CanManageApprovals => _currentUserContext.HasPermission(PermissionCodes.MasterUsersWrite);
 
+    partial void OnSelectedUserChanged(UserRow? value)
+    {
+        if (value is null || AssignableRoles.Count == 0)
+        {
+            return;
+        }
+
+        var preferredRole = AssignableRoles.FirstOrDefault(role =>
+            value.Roles.Any(x => string.Equals(x, role, StringComparison.OrdinalIgnoreCase)));
+
+        if (!string.IsNullOrWhiteSpace(preferredRole))
+        {
+            SelectedRoleForAssign = preferredRole;
+        }
+    }
+
     partial void OnSelectedPendingStatusChanged(PendingStatusFilterOption? value)
     {
         if (!IsBusy && CanManageApprovals)
@@ -120,24 +125,30 @@ public sealed partial class UsersManagementViewModel : ObservableObject
         }
     }
 
-    private bool CanCreateUser()
-    {
-        return !IsBusy
-            && !string.IsNullOrWhiteSpace(NewUsername)
-            && !string.IsNullOrWhiteSpace(NewPassword)
-            && !string.IsNullOrWhiteSpace(SelectedRoleForCreate);
-    }
-
     private bool CanDisableSelectedUser()
     {
-        return !IsBusy && SelectedUser is not null;
+        return !IsBusy && SelectedUser is { IsActive: true };
+    }
+
+    private bool CanActivateSelectedUser()
+    {
+        return !IsBusy && SelectedUser is { Status: UserStatus.Disabled, IsActive: false };
     }
 
     private bool CanAssignRole()
     {
-        return !IsBusy
-            && SelectedUser is not null
-            && !string.IsNullOrWhiteSpace(SelectedRoleForAssign);
+        if (IsBusy || SelectedUser is null || string.IsNullOrWhiteSpace(SelectedRoleForAssign))
+        {
+            return false;
+        }
+
+        if (!IsAssignableRole(SelectedRoleForAssign))
+        {
+            return false;
+        }
+
+        return SelectedUser.Roles.Count != 1 ||
+               !string.Equals(SelectedUser.Roles[0], SelectedRoleForAssign, StringComparison.OrdinalIgnoreCase);
     }
 
     private bool CanApprovePendingUser(PendingUserRow? row)
@@ -172,19 +183,16 @@ public sealed partial class UsersManagementViewModel : ObservableObject
             var roleDtos = await _userService.GetRolesAsync();
 
             Users = new ObservableCollection<UserRow>(userDtos.Select(MapRow));
-            Roles = new ObservableCollection<string>(roleDtos.Select(x => x.Name));
+            var assignable = ResolveAssignableRoles(roleDtos.Select(x => x.Name));
+            AssignableRoles = new ObservableCollection<string>(assignable);
 
-            if (Roles.Count > 0)
+            if (AssignableRoles.Count == 0)
             {
-                if (!Roles.Contains(SelectedRoleForCreate))
-                {
-                    SelectedRoleForCreate = Roles[0];
-                }
-
-                if (!Roles.Contains(SelectedRoleForAssign))
-                {
-                    SelectedRoleForAssign = Roles[0];
-                }
+                StatusMessage = "역할 부여 대상이 없습니다. Admin/Staff 역할을 먼저 확인해 주세요.";
+            }
+            else if (!AssignableRoles.Any(x => string.Equals(x, SelectedRoleForAssign, StringComparison.OrdinalIgnoreCase)))
+            {
+                SelectedRoleForAssign = AssignableRoles[0];
             }
 
             await LoadPendingUsersAsync();
@@ -208,32 +216,6 @@ public sealed partial class UsersManagementViewModel : ObservableObject
             StatusMessage = null;
 
             await LoadPendingUsersAsync();
-        }
-        catch (Exception ex)
-        {
-            StatusMessage = ex.Message;
-        }
-        finally
-        {
-            IsBusy = false;
-        }
-    }
-
-    [RelayCommand(CanExecute = nameof(CanCreateUser))]
-    private async Task CreateUserAsync()
-    {
-        try
-        {
-            IsBusy = true;
-            StatusMessage = null;
-
-            await _userService.CreateUserAsync(NewUsername, NewPassword, SelectedRoleForCreate);
-
-            NewUsername = string.Empty;
-            NewPassword = string.Empty;
-
-            await RefreshAsync();
-            StatusMessage = "사용자를 생성했습니다.";
         }
         catch (Exception ex)
         {
@@ -272,6 +254,33 @@ public sealed partial class UsersManagementViewModel : ObservableObject
         }
     }
 
+    [RelayCommand(CanExecute = nameof(CanActivateSelectedUser))]
+    private async Task ActivateSelectedUserAsync()
+    {
+        if (SelectedUser is null)
+        {
+            return;
+        }
+
+        try
+        {
+            IsBusy = true;
+            StatusMessage = null;
+
+            await _userApprovalService.EnableAsync(SelectedUser.Id);
+            await RefreshAsync();
+            StatusMessage = "사용자를 활성화했습니다.";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = ex.Message;
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
     [RelayCommand(CanExecute = nameof(CanAssignRole))]
     private async Task AssignRoleAsync()
     {
@@ -284,6 +293,11 @@ public sealed partial class UsersManagementViewModel : ObservableObject
         {
             IsBusy = true;
             StatusMessage = null;
+
+            if (!IsAssignableRole(SelectedRoleForAssign))
+            {
+                throw new InvalidOperationException("역할은 Staff 또는 Admin만 부여할 수 있습니다.");
+            }
 
             await _userService.AssignRoleAsync(SelectedUser.Id, SelectedRoleForAssign);
             await RefreshAsync();
@@ -432,15 +446,46 @@ public sealed partial class UsersManagementViewModel : ObservableObject
         SelectedPendingUser = PendingUsers.FirstOrDefault();
     }
 
+    private static IReadOnlyList<string> ResolveAssignableRoles(IEnumerable<string> roleNames)
+    {
+        var names = roleNames
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var resolved = new List<string>();
+        var staff = names.FirstOrDefault(x => string.Equals(x, "Staff", StringComparison.OrdinalIgnoreCase));
+        var admin = names.FirstOrDefault(x => string.Equals(x, "Admin", StringComparison.OrdinalIgnoreCase));
+
+        if (!string.IsNullOrWhiteSpace(staff))
+        {
+            resolved.Add(staff);
+        }
+
+        if (!string.IsNullOrWhiteSpace(admin))
+        {
+            resolved.Add(admin);
+        }
+
+        return resolved;
+    }
+
+    private bool IsAssignableRole(string roleName)
+    {
+        return AssignableRoles.Any(x => string.Equals(x, roleName, StringComparison.OrdinalIgnoreCase));
+    }
+
     private static UserRow MapRow(UserSummaryDto dto)
     {
         return new UserRow(
             dto.Id,
             dto.Username,
+            dto.Status,
             dto.IsActive,
             dto.FailedLoginCount,
             dto.LockoutEndUtc,
-            string.Join(", ", dto.Roles));
+            dto.Roles.ToList());
     }
 
     private static PendingUserRow MapPendingRow(PendingUserDto dto)
@@ -456,10 +501,15 @@ public sealed partial class UsersManagementViewModel : ObservableObject
     public sealed record UserRow(
         Guid Id,
         string Username,
+        UserStatus Status,
         bool IsActive,
         int FailedLoginCount,
         DateTime? LockoutEndUtc,
-        string RolesDisplay);
+        IReadOnlyList<string> Roles)
+    {
+        public string StatusDisplay => Status.ToString();
+        public string RolesDisplay => string.Join(", ", Roles);
+    }
 
     public sealed record PendingUserRow(
         Guid Id,

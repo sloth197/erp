@@ -15,15 +15,15 @@ public sealed partial class SignupViewModel : ViewModelBase
     private string _lastCheckedUsername = string.Empty;
 
     private const string PrivacyPolicyDetailText = """
-## 이용약관
+개인정보처리방침 
 
 본 서비스는 ERP 시스템 기능을 제공하는 포트폴리오 프로젝트입니다.
 
-### 1. 목적
+1. 목적
 
 본 약관은 서비스 이용과 관련된 기본적인 사항을 규정합니다.
 
-### 2. 서비스 내용
+2. 서비스 내용
 
 서비스는 다음 기능을 제공합니다:
 
@@ -33,12 +33,12 @@ public sealed partial class SignupViewModel : ViewModelBase
 
 ※ 본 서비스는 학습 및 포트폴리오 목적으로 제작되었습니다.
 
-### 3. 회원가입
+3. 회원가입
 
 - 사용자는 이메일과 비밀번호를 통해 회원가입을 할 수 있습니다.
 - 허위 정보 입력 시 서비스 이용이 제한될 수 있습니다.
 
-### 4. 이용자의 책임
+4. 이용자의 책임
 
 사용자는 다음 행위를 해서는 안 됩니다:
 
@@ -46,14 +46,14 @@ public sealed partial class SignupViewModel : ViewModelBase
 - 시스템에 악영향을 주는 행위
 - 비정상적인 접근 시도
 
-### 5. 서비스 제한
+5. 서비스 제한
 
 다음 경우 서비스 이용이 제한될 수 있습니다:
 
 - 비정상적인 접근
 - 보안 위협 발생
 
-### 6. 면책 조항
+6. 면책 조항
 
 본 서비스는 포트폴리오 목적으로 제공되며,
 

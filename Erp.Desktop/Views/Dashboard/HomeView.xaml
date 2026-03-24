@@ -65,22 +65,6 @@
                             <TextBlock Text="{Binding PendingUserCount, StringFormat=대기 {0:N0}}" Foreground="#B54708" />
                         </StackPanel>
                     </Border>
-
-                    <Border Margin="0,0,10,10" Padding="12" Background="White" BorderBrush="#D0D7E2" BorderThickness="1" CornerRadius="8">
-                        <StackPanel>
-                            <TextBlock Text="남은 필수 기능" FontSize="12" Foreground="#667085" />
-                            <TextBlock Text="{Binding PlannedModuleCount, StringFormat={}{0:N0}}" FontSize="24" FontWeight="SemiBold" />
-                            <TextBlock Text="우선 구현 대상" Foreground="#475467" />
-                        </StackPanel>
-                    </Border>
-
-                    <Border Margin="0,0,0,10" Padding="12" Background="White" BorderBrush="#D0D7E2" BorderThickness="1" CornerRadius="8">
-                        <StackPanel>
-                            <TextBlock Text="구현 진행" FontSize="12" Foreground="#667085" />
-                            <TextBlock Text="{Binding ImplementedModuleCount, StringFormat={}{0:N0}}" FontSize="24" FontWeight="SemiBold" />
-                            <TextBlock Text="{Binding PlannedModuleCount, StringFormat=예정 {0:N0}}" Foreground="#475467" />
-                        </StackPanel>
-                    </Border>
                 </UniformGrid>
 
                 <Border Margin="0,0,0,14" Padding="14" Background="White" BorderBrush="#D0D7E2" BorderThickness="1" CornerRadius="8">
@@ -101,32 +85,6 @@
                         <ColumnDefinition Width="12" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
-
-                    <Border Grid.Column="0" Padding="14" Background="White" BorderBrush="#D0D7E2" BorderThickness="1" CornerRadius="8">
-                        <StackPanel>
-                            <TextBlock Text="구현 완료" FontSize="14" FontWeight="SemiBold" />
-                            <ItemsControl ItemsSource="{Binding ImplementedModules}" Margin="0,8,0,0">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Margin="0,4,0,0" Text="{Binding StringFormat=• {0}}" Foreground="#1F2937" />
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </StackPanel>
-                    </Border>
-
-                    <Border Grid.Column="2" Padding="14" Background="White" BorderBrush="#D0D7E2" BorderThickness="1" CornerRadius="8">
-                        <StackPanel>
-                            <TextBlock Text="다음 구현 대상" FontSize="14" FontWeight="SemiBold" />
-                            <ItemsControl ItemsSource="{Binding PlannedModules}" Margin="0,8,0,0">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Margin="0,4,0,0" Text="{Binding StringFormat=• {0}}" Foreground="#667085" />
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </StackPanel>
-                    </Border>
                 </Grid>
             </StackPanel>
         </ScrollViewer>

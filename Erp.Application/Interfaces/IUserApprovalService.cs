@@ -21,4 +21,9 @@ public interface IUserApprovalService
         Guid userId,
         string? reason = null,
         CancellationToken cancellationToken = default);
+
+    Task EnableAsync(
+        Guid userId,
+        string? reason = null,
+        CancellationToken cancellationToken = default);
 }

@@ -9,6 +9,12 @@ namespace Erp.Infrastructure.Seeding;
 
 public sealed class ErpDataSeeder : IDataSeeder
 {
+    private const int RandomInventoryTargetCount = 30;
+    private const string SeedCategoryCode = "SEED";
+    private const string SeedUomCode = "EA";
+    private const string SeedItemCodePrefix = "SEED-ITEM-";
+    private const string SeedReceiptTxPrefix = "SEED-RCV-";
+
     private readonly IDbContextFactory<ErpDbContext> _dbContextFactory;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IConfiguration _configuration;
@@ -64,6 +70,7 @@ public sealed class ErpDataSeeder : IDataSeeder
         await EnsureUserAsync(db, adminUsername, adminPassword, adminRole, cancellationToken);
         await EnsureUserAsync(db, staffUsername, staffPassword, staffRole, cancellationToken);
         await EnsureWarehouseSeedsAsync(db, cancellationToken);
+        await EnsureRandomInventorySeedsAsync(db, cancellationToken);
 
         await db.SaveChangesAsync(cancellationToken);
     }
@@ -210,5 +217,225 @@ public sealed class ErpDataSeeder : IDataSeeder
         location = new Location(warehouseId, code, name);
         db.Locations.Add(location);
         return location;
+    }
+
+    private static async Task EnsureRandomInventorySeedsAsync(ErpDbContext db, CancellationToken cancellationToken)
+    {
+        var currentBalanceCount = await db.InventoryBalances.CountAsync(cancellationToken);
+        if (currentBalanceCount >= RandomInventoryTargetCount)
+        {
+            return;
+        }
+
+        var warehouse = await db.Warehouses
+            .OrderBy(x => x.Code)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (warehouse is null)
+        {
+            return;
+        }
+
+        var locationIds = await db.Locations
+            .AsNoTracking()
+            .Where(x => x.WarehouseId == warehouse.Id)
+            .Select(x => x.Id)
+            .ToListAsync(cancellationToken);
+
+        var category = await EnsureItemCategoryAsync(db, SeedCategoryCode, "Seeded Items", cancellationToken);
+        var unitOfMeasure = await EnsureUnitOfMeasureAsync(db, SeedUomCode, "Each", cancellationToken);
+
+        var missingCount = RandomInventoryTargetCount - currentBalanceCount;
+        var candidateItemIds = await GetCandidateItemIdsAsync(db, warehouse.Id, cancellationToken);
+
+        if (candidateItemIds.Count < missingCount)
+        {
+            var createCount = missingCount - candidateItemIds.Count;
+            await CreateSeedItemsAsync(db, category.Id, unitOfMeasure.Id, createCount, cancellationToken);
+            await db.SaveChangesAsync(cancellationToken);
+            candidateItemIds = await GetCandidateItemIdsAsync(db, warehouse.Id, cancellationToken);
+        }
+
+        var receiptSequence = await GetNextSeedReceiptSequenceAsync(db, cancellationToken);
+        var random = new Random();
+
+        for (var i = 0; i < missingCount && i < candidateItemIds.Count; i++)
+        {
+            var itemId = candidateItemIds[i];
+            var locationId = ResolveRandomLocation(locationIds, random);
+            var qty = Math.Round((decimal)(random.NextDouble() * 900d + 10d), 2, MidpointRounding.AwayFromZero);
+            var unitCost = Math.Round((decimal)(random.NextDouble() * 90d + 1d), 2, MidpointRounding.AwayFromZero);
+            var occurredAtUtc = DateTime.UtcNow.AddMinutes(-random.Next(30, 14 * 24 * 60));
+            var txNo = $"{SeedReceiptTxPrefix}{receiptSequence + i:000000}";
+
+            var balanceId = Guid.NewGuid();
+            var rowVersion = Guid.NewGuid().ToByteArray();
+            var nowUtc = DateTime.UtcNow;
+
+            await db.Database.ExecuteSqlInterpolatedAsync($@"
+INSERT INTO inventory_balances (id, item_id, warehouse_id, location_id, qty_on_hand, qty_allocated, row_version, created_at_utc, updated_at_utc)
+VALUES ({balanceId}, {itemId}, {warehouse.Id}, {locationId}, {qty}, {0m}, {rowVersion}, {nowUtc}, {nowUtc});", cancellationToken);
+
+            db.StockLedgerEntries.Add(new StockLedgerEntry(
+                txNo: txNo,
+                txType: InventoryTxType.Receipt,
+                itemId: itemId,
+                warehouseId: warehouse.Id,
+                qty: qty,
+                occurredAtUtc: occurredAtUtc,
+                locationId: locationId,
+                unitCost: unitCost,
+                note: "Seeded random inventory."));
+        }
+    }
+
+    private static async Task<List<Guid>> GetCandidateItemIdsAsync(
+        ErpDbContext db,
+        Guid warehouseId,
+        CancellationToken cancellationToken)
+    {
+        var itemIdsInWarehouse = await db.InventoryBalances
+            .AsNoTracking()
+            .Where(x => x.WarehouseId == warehouseId)
+            .Select(x => x.ItemId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        var excludedIds = itemIdsInWarehouse.ToHashSet();
+        var activeItemIds = await db.Items
+            .AsNoTracking()
+            .Where(x => x.IsActive)
+            .OrderBy(x => x.ItemCode)
+            .Select(x => x.Id)
+            .ToListAsync(cancellationToken);
+
+        return activeItemIds
+            .Where(x => !excludedIds.Contains(x))
+            .ToList();
+    }
+
+    private static Guid? ResolveRandomLocation(IReadOnlyList<Guid> locationIds, Random random)
+    {
+        if (locationIds.Count == 0)
+        {
+            return null;
+        }
+
+        var useNullLocation = random.Next(0, 10) < 2;
+        if (useNullLocation)
+        {
+            return null;
+        }
+
+        return locationIds[random.Next(locationIds.Count)];
+    }
+
+    private static async Task<ItemCategory> EnsureItemCategoryAsync(
+        ErpDbContext db,
+        string categoryCode,
+        string name,
+        CancellationToken cancellationToken)
+    {
+        var category = await db.ItemCategories
+            .FirstOrDefaultAsync(x => x.CategoryCode == categoryCode, cancellationToken);
+        if (category is not null)
+        {
+            return category;
+        }
+
+        category = new ItemCategory(categoryCode, name);
+        db.ItemCategories.Add(category);
+        return category;
+    }
+
+    private static async Task<UnitOfMeasure> EnsureUnitOfMeasureAsync(
+        ErpDbContext db,
+        string uomCode,
+        string name,
+        CancellationToken cancellationToken)
+    {
+        var unitOfMeasure = await db.UnitOfMeasures
+            .FirstOrDefaultAsync(x => x.UomCode == uomCode, cancellationToken);
+        if (unitOfMeasure is not null)
+        {
+            return unitOfMeasure;
+        }
+
+        unitOfMeasure = new UnitOfMeasure(uomCode, name);
+        db.UnitOfMeasures.Add(unitOfMeasure);
+        return unitOfMeasure;
+    }
+
+    private static async Task CreateSeedItemsAsync(
+        ErpDbContext db,
+        Guid categoryId,
+        Guid unitOfMeasureId,
+        int createCount,
+        CancellationToken cancellationToken)
+    {
+        if (createCount <= 0)
+        {
+            return;
+        }
+
+        var existingCodes = await db.Items
+            .AsNoTracking()
+            .Select(x => x.ItemCode)
+            .ToListAsync(cancellationToken);
+
+        var codeSet = new HashSet<string>(existingCodes, StringComparer.OrdinalIgnoreCase);
+        var nextSequence = existingCodes
+            .Where(x => x.StartsWith(SeedItemCodePrefix, StringComparison.OrdinalIgnoreCase))
+            .Select(x => ExtractSequence(x, SeedItemCodePrefix))
+            .DefaultIfEmpty(0)
+            .Max() + 1;
+
+        var created = 0;
+        while (created < createCount)
+        {
+            var itemCode = $"{SeedItemCodePrefix}{nextSequence:0000}";
+            nextSequence++;
+
+            if (!codeSet.Add(itemCode))
+            {
+                continue;
+            }
+
+            db.Items.Add(new Item(
+                itemCode: itemCode,
+                name: $"Seed Item {itemCode[^4..]}",
+                categoryId: categoryId,
+                unitOfMeasureId: unitOfMeasureId,
+                trackingType: TrackingType.None));
+
+            created++;
+        }
+    }
+
+    private static async Task<int> GetNextSeedReceiptSequenceAsync(
+        ErpDbContext db,
+        CancellationToken cancellationToken)
+    {
+        var txNos = await db.StockLedgerEntries
+            .AsNoTracking()
+            .Where(x => x.TxNo.StartsWith(SeedReceiptTxPrefix))
+            .Select(x => x.TxNo)
+            .ToListAsync(cancellationToken);
+
+        var maxSequence = txNos
+            .Select(x => ExtractSequence(x, SeedReceiptTxPrefix))
+            .DefaultIfEmpty(0)
+            .Max();
+
+        return maxSequence + 1;
+    }
+
+    private static int ExtractSequence(string value, string prefix)
+    {
+        if (!value.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return 0;
+        }
+
+        return int.TryParse(value[prefix.Length..], out var parsed) ? parsed : 0;
     }
 }

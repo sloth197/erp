@@ -213,6 +213,44 @@ public sealed class UserApprovalService : IUserApprovalService
         await db.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task EnableAsync(
+        Guid userId,
+        string? reason = null,
+        CancellationToken cancellationToken = default)
+    {
+        _accessControl.DemandPermission(PermissionCodes.MasterUsersWrite);
+
+        if (userId == Guid.Empty)
+        {
+            throw new InvalidOperationException("활성화할 사용자가 올바르지 않습니다.");
+        }
+
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        var user = await db.Users
+            .FirstOrDefaultAsync(x => x.Id == userId, cancellationToken);
+        if (user is null)
+        {
+            throw new InvalidOperationException("사용자를 찾을 수 없습니다.");
+        }
+
+        if (user.Status != UserStatus.Disabled)
+        {
+            throw new InvalidOperationException("비활성화된 계정만 활성화할 수 있습니다.");
+        }
+
+        user.Enable(_currentUserContext.CurrentUserId);
+
+        db.AuditLogs.Add(new AuditLog(
+            actorUserId: _currentUserContext.CurrentUserId,
+            action: "User.Enabled",
+            target: user.Username,
+            detailJson: SerializeDetail(new { reason, user.Status }),
+            ip: null));
+
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
     private static string SerializeDetail(object detail)
     {
         return JsonSerializer.Serialize(detail);

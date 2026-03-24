@@ -82,6 +82,29 @@ public sealed class UserApprovalServiceTests
     }
 
     [Fact]
+    public async Task EnableAsync_ReactivatesDisabledUser_AndWritesAudit()
+    {
+        var fixture = CreateFixture();
+        var userId = await SeedDisabledUserAsync(fixture, "disabled-enable");
+
+        await fixture.ApprovalService.EnableAsync(userId, "manual");
+
+        await using var db = await fixture.Factory.CreateDbContextAsync();
+        var user = await db.Users.SingleAsync(x => x.Id == userId);
+        var hasAudit = await db.AuditLogs.AnyAsync(x => x.Action == "User.Enabled" && x.Target == user.Username);
+
+        Assert.Equal(UserStatus.Active, user.Status);
+        Assert.True(user.IsActive);
+        Assert.Null(user.DisabledAtUtc);
+        Assert.Null(user.DisabledByUserId);
+        Assert.Equal(fixture.ActorUserId, user.ApprovedByUserId);
+        Assert.True(hasAudit);
+
+        var loginResult = await fixture.AuthService.LoginAsync("disabled-enable", KnownPassword);
+        Assert.True(loginResult.Success);
+    }
+
+    [Fact]
     public async Task ListPendingUsersAsync_FiltersByStatusAndKeyword()
     {
         var fixture = CreateFixture();
@@ -124,6 +147,17 @@ public sealed class UserApprovalServiceTests
         await using var db = await fixture.Factory.CreateDbContextAsync();
         var user = new User(username, fixture.PasswordHasher.Hash(KnownPassword), $"{username}@erp.local");
         user.Approve();
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
+        return user.Id;
+    }
+
+    private static async Task<Guid> SeedDisabledUserAsync(TestFixture fixture, string username)
+    {
+        await using var db = await fixture.Factory.CreateDbContextAsync();
+        var user = new User(username, fixture.PasswordHasher.Hash(KnownPassword), $"{username}@erp.local");
+        user.Approve();
+        user.Disable();
         db.Users.Add(user);
         await db.SaveChangesAsync();
         return user.Id;
