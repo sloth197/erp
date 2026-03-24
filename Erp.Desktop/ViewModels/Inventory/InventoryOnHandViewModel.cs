@@ -59,18 +59,18 @@ public sealed partial class InventoryOnHandViewModel : ViewModelBase
         new(
         [
             new SortFieldOption("itemcode", "Item Code"),
-            new SortFieldOption("itemname", "Item Name"),
-            new SortFieldOption("qtyonhand", "On Hand"),
-            new SortFieldOption("warehousecode", "Warehouse"),
-            new SortFieldOption("locationcode", "Location"),
-            new SortFieldOption("updatedatutc", "Updated At")
+            new SortFieldOption("itemname", "품목명"),
+            new SortFieldOption("qtyonhand", "재고수량"),
+            new SortFieldOption("warehousecode", "창고"),
+            new SortFieldOption("locationcode", "로케이션"),
+            new SortFieldOption("updatedatutc", "수정일시")
         ]);
 
     public ObservableCollection<SortDirectionOption> SortDirections { get; } =
         new(
         [
-            new SortDirectionOption("asc", "Ascending"),
-            new SortDirectionOption("desc", "Descending")
+            new SortDirectionOption("asc", "오름차순"),
+            new SortDirectionOption("desc", "내림차순")
         ]);
 
     public bool CanRead { get; }
@@ -164,7 +164,7 @@ public sealed partial class InventoryOnHandViewModel : ViewModelBase
         try
         {
             ClearUserMessage();
-            SetBusy(true, "Loading inventory filters...");
+            SetBusy(true, "재고 필터 로딩 중...");
 
             var warehouseTask = _inventoryQueryService.GetWarehouseOptionsAsync();
             var categoryTask = _itemQueryService.GetItemCategoryOptionsAsync();
@@ -201,7 +201,7 @@ public sealed partial class InventoryOnHandViewModel : ViewModelBase
         {
             Rows = new ObservableCollection<StockOnHandRow>();
             TotalCount = 0;
-            SetError("Read permission is required.");
+            SetError("조회 권한이 필요합니다.");
             return;
         }
 
@@ -209,14 +209,14 @@ public sealed partial class InventoryOnHandViewModel : ViewModelBase
         {
             Rows = new ObservableCollection<StockOnHandRow>();
             TotalCount = 0;
-            SetError("Please select a warehouse.");
+            SetError("창고를 선택해 주세요.");
             return;
         }
 
         try
         {
             ClearUserMessage();
-            SetBusy(true, "Loading on-hand inventory...");
+            SetBusy(true, "재고 조회 중...");
 
             if (resetPage)
             {
@@ -242,7 +242,7 @@ public sealed partial class InventoryOnHandViewModel : ViewModelBase
 
             if (Rows.Count == 0)
             {
-                SetError("No on-hand rows matched the current filter.");
+                SetError("현재 검색 조건과 일치하는 재고가 없습니다.");
             }
         }
         catch (Exception ex)
@@ -278,7 +278,7 @@ public sealed partial class InventoryOnHandViewModel : ViewModelBase
     public sealed record WarehouseFilterOption(Guid Id, string DisplayName);
     public sealed record CategoryFilterOption(Guid? Id, string DisplayName)
     {
-        public static CategoryFilterOption All { get; } = new(null, "All");
+        public static CategoryFilterOption All { get; } = new(null, "전체");
     }
 
     public sealed record SortFieldOption(string Key, string DisplayName);

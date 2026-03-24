@@ -78,16 +78,22 @@ public sealed partial class ItemsViewModel : ViewModelBase
     private string sortDirection = "asc";
 
     public ObservableCollection<int> PageSizes { get; } = new([20, 50, 100, 200]);
-    public ObservableCollection<TrackingType> TrackingTypeEditOptions { get; } =
-        new([TrackingType.None, TrackingType.Lot, TrackingType.Serial, TrackingType.Expiry]);
+    public ObservableCollection<TrackingTypeEditOption> TrackingTypeEditOptions { get; } =
+        new(
+        [
+            new TrackingTypeEditOption(TrackingType.None, "없음"),
+            new TrackingTypeEditOption(TrackingType.Lot, "로트"),
+            new TrackingTypeEditOption(TrackingType.Serial, "시리얼"),
+            new TrackingTypeEditOption(TrackingType.Expiry, "유통기한")
+        ]);
 
     public int TotalPages => PageSize <= 0 ? 0 : (int)Math.Ceiling(TotalCount / (double)PageSize);
     public bool CanRead { get; }
     public bool CanWrite { get; }
     public bool CanExport { get; }
     public bool CanEditDetail => CanWrite && Editor is not null;
-    public string DetailHeader => IsCreateMode ? "Item Detail - New" : "Item Detail";
-    public string ActiveToggleButtonText => SelectedItem?.IsActive == true ? "Deactivate" : "Activate";
+    public string DetailHeader => IsCreateMode ? "품목 상세 - 신규" : "품목 상세";
+    public string ActiveToggleButtonText => SelectedItem?.IsActive == true ? "비활성화" : "활성화";
     public bool ShowEmptyState => !IsBusy && Items.Count == 0;
 
     public ItemsViewModel(
@@ -121,10 +127,10 @@ public sealed partial class ItemsViewModel : ViewModelBase
         TrackingFilters = new ObservableCollection<TrackingTypeFilterOption>
         {
             TrackingTypeFilterOption.All,
-            new TrackingTypeFilterOption(TrackingType.None, "None"),
-            new TrackingTypeFilterOption(TrackingType.Lot, "Lot"),
-            new TrackingTypeFilterOption(TrackingType.Serial, "Serial"),
-            new TrackingTypeFilterOption(TrackingType.Expiry, "Expiry")
+            new TrackingTypeFilterOption(TrackingType.None, "없음"),
+            new TrackingTypeFilterOption(TrackingType.Lot, "로트"),
+            new TrackingTypeFilterOption(TrackingType.Serial, "시리얼"),
+            new TrackingTypeFilterOption(TrackingType.Expiry, "유통기한")
         };
 
         SearchCriteria.SelectedCategory = ItemCategoryFilterOption.All;
@@ -240,7 +246,7 @@ public sealed partial class ItemsViewModel : ViewModelBase
 
         if (defaultCategory is null || defaultUom is null)
         {
-            SetError("Master data is missing. Category and Unit of Measure are required.");
+            SetError("기준 정보가 없습니다. 카테고리와 단위를 먼저 확인하세요.");
             return;
         }
 
@@ -275,13 +281,13 @@ public sealed partial class ItemsViewModel : ViewModelBase
 
         if (!ValidateEditor(Editor))
         {
-            SetError("Please fix the validation errors.");
+            SetError("입력 값을 확인해 주세요.");
             return;
         }
 
         try
         {
-            SetBusy(true, "Saving item...");
+            SetBusy(true, "품목 저장 중...");
 
             if (IsCreateMode)
             {
@@ -297,13 +303,13 @@ public sealed partial class ItemsViewModel : ViewModelBase
 
                 IsCreateMode = false;
                 await LoadInternalAsync(resetPage: false, preferredItemId: createResult.ItemId);
-                SetSuccess("Item created.");
+                SetSuccess("품목이 등록되었습니다.");
                 return;
             }
 
             if (Editor.ItemId is null || Editor.RowVersion.Length == 0)
             {
-                throw new InvalidOperationException("Invalid edit state. Reload and try again.");
+                throw new InvalidOperationException("편집 상태가 올바르지 않습니다. 새로고침 후 다시 시도해 주세요.");
             }
 
             var updateResult = await _itemCommandService.UpdateItemAsync(new UpdateItemCommand
@@ -319,7 +325,7 @@ public sealed partial class ItemsViewModel : ViewModelBase
             });
 
             await LoadInternalAsync(resetPage: false, preferredItemId: updateResult.ItemId);
-            SetSuccess("Item saved.");
+            SetSuccess("품목이 저장되었습니다.");
         }
         catch (Exception ex)
         {
@@ -375,7 +381,7 @@ public sealed partial class ItemsViewModel : ViewModelBase
         try
         {
             ClearUserMessage();
-            SetBusy(true, "Updating item status...");
+            SetBusy(true, "품목 상태 변경 중...");
 
             if (SelectedItem.IsActive)
             {
@@ -393,7 +399,7 @@ public sealed partial class ItemsViewModel : ViewModelBase
             }
 
             await LoadInternalAsync(resetPage: false, preferredItemId: SelectedItem.Id);
-            SetSuccess("Item status updated.");
+            SetSuccess("품목 상태가 변경되었습니다.");
         }
         catch (Exception ex)
         {
@@ -410,20 +416,20 @@ public sealed partial class ItemsViewModel : ViewModelBase
     {
         if (!CanRead)
         {
-            SetError("Read permission is required.");
+            SetError("조회 권한이 필요합니다.");
             return;
         }
 
         if (!CanExport)
         {
-            SetError("Export permission is required.");
+            SetError("내보내기 권한이 필요합니다.");
             return;
         }
 
         try
         {
             ClearUserMessage();
-            SetBusy(true, "Exporting CSV...");
+            SetBusy(true, "CSV 내보내는 중...");
 
             var exportQuery = new ExportItemsQuery
             {
@@ -438,21 +444,21 @@ public sealed partial class ItemsViewModel : ViewModelBase
             var rows = await _itemQueryService.ExportItemsAsync(exportQuery);
             if (rows.Count == 0)
             {
-                SetError("No rows matched the current filter.");
+                SetError("현재 검색 조건과 일치하는 데이터가 없습니다.");
                 return;
             }
 
             var filePath = _fileSaveDialogService.ShowCsvSaveDialog($"items_{DateTime.Now:yyyyMMdd_HHmmss}.csv");
             if (string.IsNullOrWhiteSpace(filePath))
             {
-                SetError("CSV export cancelled.");
+                SetError("CSV 내보내기가 취소되었습니다.");
                 return;
             }
 
             var csvContent = _itemCsvExportService.BuildCsv(rows);
             await File.WriteAllTextAsync(filePath, csvContent, new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
 
-            SetSuccess($"CSV exported: {rows.Count:N0} rows.");
+            SetSuccess($"CSV 내보내기 완료: {rows.Count:N0}건");
         }
         catch (Exception ex)
         {
@@ -525,14 +531,14 @@ public sealed partial class ItemsViewModel : ViewModelBase
         {
             Items = new ObservableCollection<ItemRow>();
             TotalCount = 0;
-            SetError("Read permission is required.");
+            SetError("조회 권한이 필요합니다.");
             return;
         }
 
         try
         {
             ClearUserMessage();
-            SetBusy(true, "Loading items...");
+            SetBusy(true, "품목 조회 중...");
 
             if (resetPage)
             {
@@ -589,7 +595,7 @@ public sealed partial class ItemsViewModel : ViewModelBase
 
             if (Items.Count == 0)
             {
-                SetError("No rows matched the current filter.");
+                SetError("현재 검색 조건과 일치하는 품목이 없습니다.");
             }
         }
         catch (Exception ex)
@@ -660,41 +666,41 @@ public sealed partial class ItemsViewModel : ViewModelBase
     {
         if (editor is null)
         {
-            AddValidationError("Item editor is not initialized.");
+            AddValidationError("품목 편집 정보가 초기화되지 않았습니다.");
             return false;
         }
 
         if (string.IsNullOrWhiteSpace(editor.ItemCode))
         {
-            AddValidationError("Item code is required.");
+            AddValidationError("Item Code는 필수입니다.");
         }
         else if (editor.ItemCode.Trim().Length > 50)
         {
-            AddValidationError("Item code must be 50 characters or fewer.");
+            AddValidationError("Item Code는 50자 이하여야 합니다.");
         }
 
         if (string.IsNullOrWhiteSpace(editor.Name))
         {
-            AddValidationError("Item name is required.");
+            AddValidationError("품목명은 필수입니다.");
         }
         else if (editor.Name.Trim().Length > 200)
         {
-            AddValidationError("Item name must be 200 characters or fewer.");
+            AddValidationError("품목명은 200자 이하여야 합니다.");
         }
 
         if (!string.IsNullOrWhiteSpace(editor.Barcode) && editor.Barcode.Trim().Length > 100)
         {
-            AddValidationError("Barcode must be 100 characters or fewer.");
+            AddValidationError("바코드는 100자 이하여야 합니다.");
         }
 
         if (editor.SelectedCategory?.Id is null)
         {
-            AddValidationError("Category is required.");
+            AddValidationError("카테고리는 필수입니다.");
         }
 
         if (editor.SelectedUnitOfMeasure is null)
         {
-            AddValidationError("Unit of measure is required.");
+            AddValidationError("단위는 필수입니다.");
         }
 
         return !HasValidationErrors;
@@ -751,27 +757,36 @@ public sealed partial class ItemsViewModel : ViewModelBase
         DateTime CreatedAtUtc,
         DateTime UpdatedAtUtc)
     {
-        public string TrackingTypeDisplay => TrackingType.ToString();
+        public string TrackingTypeDisplay => TrackingType switch
+        {
+            TrackingType.None => "없음",
+            TrackingType.Lot => "로트",
+            TrackingType.Serial => "시리얼",
+            TrackingType.Expiry => "유통기한",
+            _ => TrackingType.ToString()
+        };
     }
 
     public sealed record ItemCategoryFilterOption(Guid? Id, string DisplayName)
     {
-        public static ItemCategoryFilterOption All { get; } = new(null, "All");
+        public static ItemCategoryFilterOption All { get; } = new(null, "전체");
     }
 
     public sealed record UnitOfMeasureOption(Guid Id, string DisplayName);
 
     public sealed record ActiveFilterOption(bool? IsActive, string DisplayName)
     {
-        public static ActiveFilterOption All { get; } = new(null, "All");
-        public static ActiveFilterOption ActiveOnly { get; } = new(true, "Active");
-        public static ActiveFilterOption InactiveOnly { get; } = new(false, "Inactive");
+        public static ActiveFilterOption All { get; } = new(null, "전체");
+        public static ActiveFilterOption ActiveOnly { get; } = new(true, "활성");
+        public static ActiveFilterOption InactiveOnly { get; } = new(false, "비활성");
     }
 
     public sealed record TrackingTypeFilterOption(TrackingType? TrackingType, string DisplayName)
     {
-        public static TrackingTypeFilterOption All { get; } = new(null, "All");
+        public static TrackingTypeFilterOption All { get; } = new(null, "전체");
     }
+
+    public sealed record TrackingTypeEditOption(TrackingType Value, string DisplayName);
 
     public sealed partial class ItemSearchCriteria : ObservableObject
     {

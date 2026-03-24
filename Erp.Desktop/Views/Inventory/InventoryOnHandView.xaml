@@ -10,7 +10,7 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <TextBlock Text="Inventory On-hand" FontSize="22" FontWeight="SemiBold" />
+        <TextBlock Text="재고 조회" FontSize="22" FontWeight="SemiBold" />
 
         <Border Grid.Row="1"
                 Margin="0,12,0,10"
@@ -29,31 +29,31 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                    <TextBlock Text="Warehouse (required)" Margin="0,0,0,4" />
+                    <TextBlock Text="창고 (필수)" Margin="0,0,0,4" />
                     <ComboBox ItemsSource="{Binding Warehouses}"
                               SelectedItem="{Binding SelectedWarehouse}"
                               DisplayMemberPath="DisplayName" />
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Margin="0,0,10,0">
-                    <TextBlock Text="Keyword" Margin="0,0,0,4" />
+                    <TextBlock Text="검색어" Margin="0,0,0,4" />
                     <TextBox Text="{Binding Keyword, UpdateSourceTrigger=PropertyChanged}" />
                 </StackPanel>
 
                 <StackPanel Grid.Column="2" Margin="0,0,10,0">
-                    <TextBlock Text="Category" Margin="0,0,0,4" />
+                    <TextBlock Text="카테고리" Margin="0,0,0,4" />
                     <ComboBox ItemsSource="{Binding Categories}"
                               SelectedItem="{Binding SelectedCategory}"
                               DisplayMemberPath="DisplayName" />
                 </StackPanel>
 
                 <StackPanel Grid.Column="3" Margin="0,18,10,0" VerticalAlignment="Top">
-                    <CheckBox Content="Include Locations"
+                    <CheckBox Content="로케이션 포함"
                               IsChecked="{Binding IncludeLocations}" />
                 </StackPanel>
 
                 <Button Grid.Column="4"
-                        Content="Search"
+                        Content="조회"
                         Width="84"
                         Height="30"
                         Margin="0,18,8,0"
@@ -61,7 +61,7 @@
                         Command="{Binding SearchCommand}" />
 
                 <Button Grid.Column="5"
-                        Content="Reload"
+                        Content="새로고침"
                         Width="84"
                         Height="30"
                         Margin="0,18,0,0"
@@ -80,10 +80,10 @@
                 <TextBlock DockPanel.Dock="Left"
                            VerticalAlignment="Center"
                            Foreground="#667085"
-                           Text="{Binding TotalCount, StringFormat=Total {0:N0} rows}" />
+                           Text="{Binding TotalCount, StringFormat=총 {0:N0}건}" />
 
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="Sort" Margin="0,0,6,0" VerticalAlignment="Center" />
+                    <TextBlock Text="정렬" Margin="0,0,6,0" VerticalAlignment="Center" />
                     <ComboBox Width="110"
                               ItemsSource="{Binding SortFields}"
                               DisplayMemberPath="DisplayName"
@@ -96,22 +96,22 @@
                               SelectedValuePath="Key"
                               SelectedValue="{Binding SelectedSortDirection}" />
 
-                    <TextBlock Text="Page size" Margin="14,0,6,0" VerticalAlignment="Center" />
+                    <TextBlock Text="페이지 크기" Margin="14,0,6,0" VerticalAlignment="Center" />
                     <ComboBox Width="70"
                               ItemsSource="{Binding PageSizes}"
                               SelectedItem="{Binding PageSize}" />
 
-                    <Button Content="Prev"
+                    <Button Content="이전"
                             Width="56"
                             Margin="10,0,0,0"
                             Command="{Binding PreviousPageCommand}" />
                     <TextBlock Margin="8,0"
                                VerticalAlignment="Center"
-                               Text="{Binding Page, StringFormat={}{0} / }" />
+                               Text="{Binding Page, StringFormat=페이지 {0} / }" />
                     <TextBlock Margin="0,0,8,0"
                                VerticalAlignment="Center"
                                Text="{Binding TotalPages}" />
-                    <Button Content="Next"
+                    <Button Content="다음"
                             Width="56"
                             Command="{Binding NextPageCommand}" />
                 </StackPanel>
@@ -127,17 +127,17 @@
                           VirtualizingPanel.ScrollUnit="Pixel"
                           ScrollViewer.CanContentScroll="True">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="ItemCode" Binding="{Binding ItemCode}" Width="150" />
-                        <DataGridTextColumn Header="Name" Binding="{Binding ItemName}" Width="2*" />
-                        <DataGridTextColumn Header="QtyOnHand" Binding="{Binding QtyOnHand, StringFormat={}{0:N4}}" Width="130" />
-                        <DataGridTextColumn Header="Warehouse" Binding="{Binding WarehouseCode}" Width="120" />
-                        <DataGridTextColumn Header="Location" Binding="{Binding LocationCode}" Width="120" />
-                        <DataGridTextColumn Header="UpdatedAt" Binding="{Binding UpdatedAtUtc, StringFormat=yyyy-MM-dd HH:mm:ss}" Width="170" />
+                        <DataGridTextColumn Header="Item Code" Binding="{Binding ItemCode}" Width="150" />
+                        <DataGridTextColumn Header="품목명" Binding="{Binding ItemName}" Width="2*" />
+                        <DataGridTextColumn Header="재고수량" Binding="{Binding QtyOnHand, StringFormat={}{0:N4}}" Width="130" />
+                        <DataGridTextColumn Header="창고" Binding="{Binding WarehouseCode}" Width="120" />
+                        <DataGridTextColumn Header="로케이션" Binding="{Binding LocationCode}" Width="120" />
+                        <DataGridTextColumn Header="수정일시" Binding="{Binding UpdatedAtUtc, StringFormat=yyyy-MM-dd HH:mm:ss}" Width="170" />
                     </DataGrid.Columns>
                 </DataGrid>
 
-                <controls:EmptyState Title="No Inventory Rows"
-                                     Description="No stock rows matched the current filter."
+                <controls:EmptyState Title="재고 데이터가 없습니다"
+                                     Description="현재 검색 조건과 일치하는 재고가 없습니다."
                                      HorizontalAlignment="Center"
                                      VerticalAlignment="Center">
                     <controls:EmptyState.Style>

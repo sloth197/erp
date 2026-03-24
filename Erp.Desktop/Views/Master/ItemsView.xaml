@@ -15,10 +15,10 @@
         </Grid.RowDefinitions>
 
         <DockPanel>
-            <TextBlock DockPanel.Dock="Left" Text="Items" FontSize="22" FontWeight="SemiBold" />
+            <TextBlock DockPanel.Dock="Left" Text="품목 관리" FontSize="22" FontWeight="SemiBold" />
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                <TextBlock Margin="0,0,14,0" Foreground="#667085" Text="{Binding CanRead, StringFormat=Read: {0}}" />
-                <TextBlock Foreground="#667085" Text="{Binding CanWrite, StringFormat=Write: {0}}" />
+                <TextBlock Margin="0,0,14,0" Foreground="#667085" Text="{Binding CanRead, StringFormat=조회 권한: {0}}" />
+                <TextBlock Foreground="#667085" Text="{Binding CanWrite, StringFormat=수정 권한: {0}}" />
             </StackPanel>
         </DockPanel>
 
@@ -41,34 +41,34 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Grid.Column="0" Margin="0,0,12,0">
-                    <TextBlock Text="Keyword" Margin="0,0,0,4" />
+                    <TextBlock Text="검색어" Margin="0,0,0,4" />
                     <TextBox x:Name="KeywordSearchTextBox"
                              Text="{Binding SearchCriteria.Keyword, UpdateSourceTrigger=PropertyChanged}" />
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Margin="0,0,12,0">
-                    <TextBlock Text="Category" Margin="0,0,0,4" />
+                    <TextBlock Text="카테고리" Margin="0,0,0,4" />
                     <ComboBox ItemsSource="{Binding Categories}"
                               SelectedItem="{Binding SearchCriteria.SelectedCategory}"
                               DisplayMemberPath="DisplayName" />
                 </StackPanel>
 
                 <StackPanel Grid.Column="2" Margin="0,0,12,0">
-                    <TextBlock Text="Active" Margin="0,0,0,4" />
+                    <TextBlock Text="활성 상태" Margin="0,0,0,4" />
                     <ComboBox ItemsSource="{Binding ActiveFilters}"
                               SelectedItem="{Binding SearchCriteria.Active}"
                               DisplayMemberPath="DisplayName" />
                 </StackPanel>
 
                 <StackPanel Grid.Column="3" Margin="0,0,12,0">
-                    <TextBlock Text="Tracking" Margin="0,0,0,4" />
+                    <TextBlock Text="추적 방식" Margin="0,0,0,4" />
                     <ComboBox ItemsSource="{Binding TrackingFilters}"
                               SelectedItem="{Binding SearchCriteria.SelectedTrackingType}"
                               DisplayMemberPath="DisplayName" />
                 </StackPanel>
 
                 <Button Grid.Column="4"
-                        Content="Search"
+                        Content="조회"
                         Width="84"
                         Height="30"
                         Margin="0,20,8,0"
@@ -76,7 +76,7 @@
                         Command="{Binding SearchCommand}" />
 
                 <Button Grid.Column="5"
-                        Content="Reload"
+                        Content="새로고침"
                         Width="84"
                         Height="30"
                         Margin="0,20,8,0"
@@ -84,7 +84,7 @@
                         Command="{Binding LoadCommand}" />
 
                 <Button Grid.Column="6"
-                        Content="Export CSV"
+                        Content="CSV 내보내기"
                         Width="100"
                         Height="30"
                         Margin="0,20,8,0"
@@ -93,7 +93,7 @@
                         IsEnabled="{Binding CanExport}" />
 
                 <Button Grid.Column="7"
-                        Content="New"
+                        Content="신규"
                         Width="80"
                         Height="30"
                         Margin="0,20,0,0"
@@ -120,24 +120,24 @@
                     <TextBlock DockPanel.Dock="Left"
                                VerticalAlignment="Center"
                                Foreground="#667085"
-                               Text="{Binding TotalCount, StringFormat=Total {0:N0} rows}" />
+                               Text="{Binding TotalCount, StringFormat=총 {0:N0}건}" />
 
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Text="Page Size" VerticalAlignment="Center" Margin="0,0,6,0" />
+                        <TextBlock Text="페이지 크기" VerticalAlignment="Center" Margin="0,0,6,0" />
                         <ComboBox Width="70"
                                   ItemsSource="{Binding PageSizes}"
                                   SelectedItem="{Binding PageSize}" />
-                        <Button Content="Prev"
+                        <Button Content="이전"
                                 Width="56"
                                 Margin="8,0,0,0"
                                 Command="{Binding PreviousPageCommand}" />
                         <TextBlock Margin="8,0"
                                    VerticalAlignment="Center"
-                                   Text="{Binding Page, StringFormat=Page {0}}" />
+                                   Text="{Binding Page, StringFormat=페이지 {0}}" />
                         <TextBlock Margin="0,0,8,0"
                                    VerticalAlignment="Center"
                                    Text="{Binding TotalPages, StringFormat=/ {0}}" />
-                        <Button Content="Next"
+                        <Button Content="다음"
                                 Width="56"
                                 Command="{Binding NextPageCommand}" />
                     </StackPanel>
@@ -162,17 +162,17 @@
                               FrozenColumnCount="1">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Code" Binding="{Binding ItemCode}" SortMemberPath="itemCode" Width="140" />
-                            <DataGridTextColumn Header="Name" Binding="{Binding Name}" SortMemberPath="name" Width="2*" />
-                            <DataGridTextColumn Header="Category" Binding="{Binding CategoryDisplay}" SortMemberPath="category" Width="2*" />
-                            <DataGridTextColumn Header="Tracking" Binding="{Binding TrackingTypeDisplay}" SortMemberPath="trackingType" Width="110" />
-                            <DataGridCheckBoxColumn Header="Active" Binding="{Binding IsActive}" SortMemberPath="isActive" Width="90" />
-                            <DataGridTextColumn Header="Price" Binding="{Binding Price, StringFormat={}{0:N2}}" Width="120" CanUserSort="False" />
-                            <DataGridTextColumn Header="Updated" Binding="{Binding UpdatedAtUtc, StringFormat=yyyy-MM-dd HH:mm:ss}" SortMemberPath="updatedAtUtc" Width="170" />
+                            <DataGridTextColumn Header="품목명" Binding="{Binding Name}" SortMemberPath="name" Width="2*" />
+                            <DataGridTextColumn Header="카테고리" Binding="{Binding CategoryDisplay}" SortMemberPath="category" Width="2*" />
+                            <DataGridTextColumn Header="추적방식" Binding="{Binding TrackingTypeDisplay}" SortMemberPath="trackingType" Width="110" />
+                            <DataGridCheckBoxColumn Header="활성" Binding="{Binding IsActive}" SortMemberPath="isActive" Width="90" />
+                            <DataGridTextColumn Header="단가" Binding="{Binding Price, StringFormat={}{0:N2}}" Width="120" CanUserSort="False" />
+                            <DataGridTextColumn Header="수정일시" Binding="{Binding UpdatedAtUtc, StringFormat=yyyy-MM-dd HH:mm:ss}" SortMemberPath="updatedAtUtc" Width="170" />
                         </DataGrid.Columns>
                     </DataGrid>
 
-                    <controls:EmptyState Title="No Items"
-                                         Description="No rows matched the current search filter."
+                    <controls:EmptyState Title="품목이 없습니다"
+                                         Description="현재 검색 조건과 일치하는 품목이 없습니다."
                                          HorizontalAlignment="Center"
                                          VerticalAlignment="Center">
                         <controls:EmptyState.Style>
@@ -212,7 +212,7 @@
                             <TextBlock DockPanel.Dock="Left" Text="{Binding DetailHeader}" FontWeight="SemiBold" />
                             <TextBlock DockPanel.Dock="Right"
                                        Foreground="#B54708"
-                                       Text="Read-only mode">
+                                       Text="읽기 전용 모드">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock">
                                         <Setter Property="Visibility" Value="Collapsed" />
@@ -250,30 +250,32 @@
                                      Margin="0,0,0,8"
                                      Text="{Binding Editor.ItemCode, UpdateSourceTrigger=PropertyChanged}" />
 
-                            <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="Name" />
+                            <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="품목명" />
                             <TextBox Grid.Row="1" Grid.Column="1"
                                      Margin="0,0,0,8"
                                      Text="{Binding Editor.Name, UpdateSourceTrigger=PropertyChanged}" />
 
-                            <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="Barcode" />
+                            <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="바코드" />
                             <TextBox Grid.Row="2" Grid.Column="1"
                                      Margin="0,0,0,8"
                                      Text="{Binding Editor.Barcode, UpdateSourceTrigger=PropertyChanged}" />
 
-                            <TextBlock Grid.Row="3" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="Category" />
+                            <TextBlock Grid.Row="3" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="카테고리" />
                             <ComboBox Grid.Row="3" Grid.Column="1"
                                       Margin="0,0,0,8"
                                       ItemsSource="{Binding EditableCategories}"
                                       SelectedItem="{Binding Editor.SelectedCategory}"
                                       DisplayMemberPath="DisplayName" />
 
-                            <TextBlock Grid.Row="4" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="Tracking" />
+                            <TextBlock Grid.Row="4" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="추적 방식" />
                             <ComboBox Grid.Row="4" Grid.Column="1"
                                       Margin="0,0,0,8"
                                       ItemsSource="{Binding TrackingTypeEditOptions}"
-                                      SelectedItem="{Binding Editor.SelectedTrackingType}" />
+                                      DisplayMemberPath="DisplayName"
+                                      SelectedValuePath="Value"
+                                      SelectedValue="{Binding Editor.SelectedTrackingType}" />
 
-                            <TextBlock Grid.Row="5" Grid.Column="0" Margin="0,0,8,0" VerticalAlignment="Center" Text="UOM" />
+                            <TextBlock Grid.Row="5" Grid.Column="0" Margin="0,0,8,0" VerticalAlignment="Center" Text="단위(UOM)" />
                             <ComboBox Grid.Row="5" Grid.Column="1"
                                       ItemsSource="{Binding UnitOfMeasures}"
                                       SelectedItem="{Binding Editor.SelectedUnitOfMeasure}"
@@ -282,12 +284,12 @@
 
                         <StackPanel Orientation="Horizontal"
                                     HorizontalAlignment="Right">
-                            <Button Content="Save"
+                            <Button Content="저장"
                                     Width="72"
                                     Margin="0,0,8,0"
                                     Command="{Binding SaveItemCommand}"
                                     IsEnabled="{Binding CanWrite}" />
-                            <Button Content="Cancel"
+                            <Button Content="취소"
                                     Width="72"
                                     Margin="0,0,8,0"
                                     Command="{Binding CancelEditCommand}"
