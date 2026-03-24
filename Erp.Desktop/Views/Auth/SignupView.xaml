@@ -63,11 +63,11 @@
                     </Grid>
 
                     <WrapPanel Margin="0,12,0,0">
-                        <Button Content="인증번호 받기"
+                        <Button Content="전송 요청"
                                 Width="120"
                                 Height="32"
                                 Command="{Binding SendVerificationCodeCommand}" />
-                        <Button Content="인증확인"
+                        <Button Content="확인"
                                 Width="110"
                                 Height="32"
                                 Margin="8,0,0,0"
@@ -76,10 +76,10 @@
 
                     <TextBlock Margin="0,8,0,0"
                                Foreground="#667085"
-                               Text="인증번호 만료시각:"
+                               Text="인증번호 입력 제한 시간:"
                                Visibility="{Binding IsCodeSent, Converter={StaticResource BoolToVisibilityConverter}}" />
-                    <TextBlock Foreground="#667085"
-                               Text="{Binding CodeExpiresAtUtc, StringFormat={}{0:yyyy-MM-dd HH:mm:ss}}"
+                    <TextBlock x:Name="tbTime"
+                               Foreground="#667085"
                                Visibility="{Binding IsCodeSent, Converter={StaticResource BoolToVisibilityConverter}}" />
                     <TextBlock Margin="0,8,0,0"
                                Foreground="#067647"

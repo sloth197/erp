@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Net.Mail;
 using System.Security.Cryptography;
 using System.Text;
@@ -92,7 +92,7 @@ public sealed class EmailVerificationService : IEmailVerificationService
             $"인증번호: {code}{Environment.NewLine}{Environment.NewLine}" +
             "본 메일은 발신 전용입니다.";
 
-        var htmlBody = BuildSignUpVerificationHtml(code, requestAtLocal);
+        var htmlBody = BuildSignUpVerificationHtml(code, requestAtLocal, _options.ExpiresInMinutes);
 
         try
         {
@@ -132,7 +132,7 @@ public sealed class EmailVerificationService : IEmailVerificationService
         }
     }
 
-    private static string BuildSignUpVerificationHtml(string code, DateTime requestAtLocal)
+    private static string BuildSignUpVerificationHtml(string code, DateTime requestAtLocal, int expiresInMinutes)
     {
         var safeCode = WebUtility.HtmlEncode(code);
         var requestAtText = requestAtLocal.ToString("yyyy-MM-dd HH:mm:ss");
@@ -152,6 +152,11 @@ public sealed class EmailVerificationService : IEmailVerificationService
             <td style="padding:8px 28px 20px 28px;font-size:26px;line-height:1.6;">
               회원가입을 위해 이메일 인증이 필요합니다.<br/>
               아래 인증번호를 확인하신 후 인증 절차를 완료해 주세요.
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 28px 12px 28px;font-size:20px;line-height:1.6;color:#4b5563;">
+              인증 코드는 이메일 발송 시점으로부터 {expiresInMinutes}분 동안 유효합니다.
             </td>
           </tr>
           <tr>

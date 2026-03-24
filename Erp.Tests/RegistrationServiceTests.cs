@@ -45,7 +45,7 @@ public sealed class RegistrationServiceTests
         var loginResult = await fixture.AuthService.LoginAsync("pending-user", "Password!1");
 
         Assert.False(loginResult.Success);
-        Assert.Equal("승인 대기 중입니다.", loginResult.ErrorMessage);
+        Assert.Equal("\uC774\uBA54\uC77C \uC778\uC99D\uC774 \uD544\uC694\uD569\uB2C8\uB2E4.", loginResult.ErrorMessage);
     }
 
     private static TestFixture CreateFixture()
