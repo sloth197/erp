@@ -295,6 +295,10 @@ public sealed class SearchItemsQueryHandlerTests
 
         public Guid? CurrentUserId { get; } = Guid.NewGuid();
         public string? Username { get; } = "tester";
+        public string? Email { get; } = "tester@example.com";
+        public string? Name { get; } = "Tester";
+        public string? Company { get; } = "ERP";
+        public string? PhoneNumber { get; } = "010-0000-0000";
         public bool IsAuthenticated => true;
         public IReadOnlyCollection<string> PermissionCodes => _permissions;
 

@@ -77,17 +77,47 @@ public sealed class AuthApiClient : IAuthApiClient
         }
     }
 
+    public async Task<CheckUsernameAvailabilityResult> CheckUsernameAvailabilityAsync(
+        string username,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var encoded = Uri.EscapeDataString(username ?? string.Empty);
+            var response = await _httpClient.GetAsync(
+                $"/auth/check-username?username={encoded}",
+                cancellationToken);
+
+            var payload = await response.Content.ReadFromJsonAsync<CheckUsernameAvailabilityResult>(
+                cancellationToken: cancellationToken);
+
+            if (payload is not null)
+            {
+                return payload;
+            }
+
+            return CheckUsernameAvailabilityResult.Unavailable("ID 중복 확인에 실패했습니다.");
+        }
+        catch (Exception ex)
+        {
+            return CheckUsernameAvailabilityResult.Unavailable($"ID 중복 확인 중 오류가 발생했습니다: {ex.Message}");
+        }
+    }
+
     public async Task<RegisterResult> SignupAsync(
         string username,
         string password,
         string email,
+        string name,
+        string phoneNumber,
+        string company,
         CancellationToken cancellationToken = default)
     {
         try
         {
             var response = await _httpClient.PostAsJsonAsync(
                 "/auth/signup",
-                new RegisterRequest(username, password, email),
+                new RegisterRequest(username, password, email, name, phoneNumber, company),
                 cancellationToken);
 
             var payload = await response.Content.ReadFromJsonAsync<RegisterResult>(

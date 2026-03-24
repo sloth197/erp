@@ -105,7 +105,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
             "공통(Common)",
             new MenuEntry("대시보드(Home)", null, typeof(HomeViewModel), () => _navigationService.NavigateTo<HomeViewModel>()),
             new MenuEntry("알림/공지", null, typeof(NoticesViewModel), () => _navigationService.NavigateTo<NoticesViewModel>()),
-            new MenuEntry("내 정보", null, typeof(ChangePasswordViewModel), () => _navigationService.NavigateTo<ChangePasswordViewModel>()));
+            new MenuEntry("내 정보", null, typeof(MyInfoViewModel), () => _navigationService.NavigateTo<MyInfoViewModel>()));
 
         AddGroup(
             "기준정보(Master Data)",

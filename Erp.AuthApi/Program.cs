@@ -59,6 +59,33 @@ emailGroup.MapPost("/verify-code", async (
     return Results.Ok(result);
 });
 
+authGroup.MapGet("/check-username", async (
+    string username,
+    IDbContextFactory<ErpDbContext> dbContextFactory,
+    CancellationToken cancellationToken) =>
+{
+    var normalizedUsername = username?.Trim();
+    if (string.IsNullOrWhiteSpace(normalizedUsername))
+    {
+        return Results.Ok(CheckUsernameAvailabilityResult.Unavailable("ID를 입력해 주세요."));
+    }
+
+    if (normalizedUsername.Length < 3)
+    {
+        return Results.Ok(CheckUsernameAvailabilityResult.Unavailable("ID는 3자 이상이어야 합니다."));
+    }
+
+    await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+    var exists = await db.Users.AnyAsync(x => x.Username == normalizedUsername, cancellationToken);
+
+    if (exists)
+    {
+        return Results.Ok(CheckUsernameAvailabilityResult.Unavailable("이미 사용 중인 ID입니다."));
+    }
+
+    return Results.Ok(CheckUsernameAvailabilityResult.AvailableResult("사용 가능한 ID입니다."));
+});
+
 authGroup.MapPost("/signup", async (
     RegisterRequest request,
     IRegistrationService registrationService,
@@ -88,7 +115,13 @@ authGroup.MapPost("/signup", async (
     }
 
     var registerResult = await registrationService.RegisterAsync(
-        new RegisterRequest(request.Username, request.Password, normalizedEmail),
+        new RegisterRequest(
+            request.Username,
+            request.Password,
+            normalizedEmail,
+            request.Name,
+            request.PhoneNumber,
+            request.Company),
         cancellationToken);
 
     if (!registerResult.Success)

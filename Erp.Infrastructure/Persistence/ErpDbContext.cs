@@ -529,6 +529,18 @@ public sealed class ErpDbContext : DbContext
             .HasColumnName("email")
             .HasMaxLength(320);
 
+        user.Property(x => x.Name)
+            .HasColumnName("name")
+            .HasMaxLength(100);
+
+        user.Property(x => x.PhoneNumber)
+            .HasColumnName("phone_number")
+            .HasMaxLength(20);
+
+        user.Property(x => x.Company)
+            .HasColumnName("company")
+            .HasMaxLength(100);
+
         user.Property(x => x.Status)
             .HasColumnName("status")
             .HasConversion<string>()

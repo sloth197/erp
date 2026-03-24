@@ -256,6 +256,10 @@ public sealed class ItemCommandServiceTests
 
         public Guid? CurrentUserId { get; }
         public string? Username { get; }
+        public string? Email { get; } = "tester@example.com";
+        public string? Name { get; } = "Tester";
+        public string? Company { get; } = "ERP";
+        public string? PhoneNumber { get; } = "010-0000-0000";
         public bool IsAuthenticated => CurrentUserId.HasValue;
         public IReadOnlyCollection<string> PermissionCodes => _permissions;
 

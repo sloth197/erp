@@ -13,9 +13,16 @@ public interface IAuthApiClient
         string code,
         CancellationToken cancellationToken = default);
 
+    Task<CheckUsernameAvailabilityResult> CheckUsernameAvailabilityAsync(
+        string username,
+        CancellationToken cancellationToken = default);
+
     Task<RegisterResult> SignupAsync(
         string username,
         string password,
         string email,
+        string name,
+        string phoneNumber,
+        string company,
         CancellationToken cancellationToken = default);
 }

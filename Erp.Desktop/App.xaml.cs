@@ -54,6 +54,7 @@ public partial class App : System.Windows.Application
 
                 services.AddTransient<ViewModels.LoginViewModel>();
                 services.AddTransient<ViewModels.HomeViewModel>();
+                services.AddTransient<ViewModels.MyInfoViewModel>();
                 services.AddTransient<ViewModels.ChangePasswordViewModel>();
                 services.AddTransient<ViewModels.UsersManagementViewModel>();
                 services.AddTransient<ViewModels.SettingsViewModel>();

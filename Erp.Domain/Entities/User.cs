@@ -8,6 +8,9 @@ public sealed class User
     public string Username { get; private set; } = string.Empty;
     public string PasswordHash { get; private set; } = string.Empty;
     public string? Email { get; private set; }
+    public string? Name { get; private set; }
+    public string? PhoneNumber { get; private set; }
+    public string? Company { get; private set; }
     public UserStatus Status { get; private set; } = UserStatus.Pending;
     public bool IsActive { get; private set; }
     public int FailedLoginCount { get; private set; }
@@ -30,7 +33,13 @@ public sealed class User
     {
     }
 
-    public User(string username, string passwordHash, string? email = null)
+    public User(
+        string username,
+        string passwordHash,
+        string? email = null,
+        string? name = null,
+        string? phoneNumber = null,
+        string? company = null)
     {
         if (string.IsNullOrWhiteSpace(username))
         {
@@ -46,6 +55,9 @@ public sealed class User
         Username = username.Trim();
         PasswordHash = passwordHash.Trim();
         Email = NormalizeOptional(email);
+        Name = NormalizeOptional(name);
+        PhoneNumber = NormalizeOptional(phoneNumber);
+        Company = NormalizeOptional(company);
 
         Status = UserStatus.Pending;
         IsActive = false;
@@ -107,6 +119,13 @@ public sealed class User
     public void SetEmail(string? email)
     {
         Email = NormalizeOptional(email);
+    }
+
+    public void SetProfile(string? name, string? phoneNumber, string? company)
+    {
+        Name = NormalizeOptional(name);
+        PhoneNumber = NormalizeOptional(phoneNumber);
+        Company = NormalizeOptional(company);
     }
 
     public void Approve(Guid? approvedByUserId = null, DateTime? approvedAtUtc = null)

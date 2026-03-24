@@ -37,6 +37,10 @@
                 <views:ChangePasswordView />
             </DataTemplate>
 
+            <DataTemplate DataType="{x:Type vms:MyInfoViewModel}">
+                <views:MyInfoView />
+            </DataTemplate>
+
             <DataTemplate DataType="{x:Type vms:ItemsViewModel}">
                 <views:ItemsView />
             </DataTemplate>

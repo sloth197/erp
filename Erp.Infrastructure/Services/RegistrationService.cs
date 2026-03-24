@@ -41,6 +41,24 @@ public sealed class RegistrationService : IRegistrationService
         }
 
         var normalizedEmail = NormalizeEmail(request.Email);
+        var normalizedName = NormalizeOptional(request.Name);
+        var normalizedPhoneNumber = NormalizePhoneNumber(request.PhoneNumber);
+        var normalizedCompany = NormalizeOptional(request.Company);
+
+        if (string.IsNullOrWhiteSpace(normalizedName))
+        {
+            return RegisterResult.Failed("이름을 입력하세요.");
+        }
+
+        if (string.IsNullOrWhiteSpace(normalizedCompany))
+        {
+            return RegisterResult.Failed("회사를 입력하세요.");
+        }
+
+        if (string.IsNullOrWhiteSpace(normalizedPhoneNumber))
+        {
+            return RegisterResult.Failed("전화번호 형식이 올바르지 않습니다.");
+        }
 
         await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
 
@@ -64,14 +82,17 @@ public sealed class RegistrationService : IRegistrationService
         var user = new User(
             normalizedUsername,
             _passwordHasher.Hash(request.Password),
-            normalizedEmail);
+            normalizedEmail,
+            normalizedName,
+            normalizedPhoneNumber,
+            normalizedCompany);
 
         db.Users.Add(user);
         db.AuditLogs.Add(new AuditLog(
             actorUserId: null,
             action: "User.Registered",
             target: user.Username,
-            detailJson: SerializeDetail(new { user.Email, user.Status }),
+            detailJson: SerializeDetail(new { user.Email, user.Name, user.PhoneNumber, user.Company, user.Status }),
             ip: null));
 
         await db.SaveChangesAsync(cancellationToken);
@@ -87,6 +108,37 @@ public sealed class RegistrationService : IRegistrationService
         }
 
         return value.Trim().ToLowerInvariant();
+    }
+
+    private static string? NormalizeOptional(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        return value.Trim();
+    }
+
+    private static string? NormalizePhoneNumber(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        var digits = new string(value.Where(char.IsDigit).ToArray());
+        if (string.IsNullOrWhiteSpace(digits))
+        {
+            return null;
+        }
+
+        return digits.Length switch
+        {
+            10 => $"{digits[..3]}-{digits.Substring(3, 3)}-{digits.Substring(6, 4)}",
+            11 => $"{digits[..3]}-{digits.Substring(3, 4)}-{digits.Substring(7, 4)}",
+            _ => null
+        };
     }
 
     private static string SerializeDetail(object detail)

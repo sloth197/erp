@@ -56,7 +56,7 @@ public sealed partial class HomeViewModel : ViewModelBase
         "재고 조회 / 입고 / 출고 / 조정",
         "사용자/권한 관리",
         "감사 로그",
-        "비밀번호 변경"
+        "내 정보 / 비밀번호 변경"
     ];
 
     public ObservableCollection<string> PlannedModules { get; } =

@@ -16,7 +16,7 @@ public sealed class RegistrationServiceTests
         var fixture = CreateFixture();
 
         var result = await fixture.RegistrationService.RegisterAsync(
-            new RegisterRequest("signup-user", "Password!1", "signup@erp.local"));
+            new RegisterRequest("signup-user", "Password!1", "signup@erp.local", "홍길동", "010-1234-5678", "테스트회사"));
 
         Assert.True(result.Success);
         Assert.Null(result.ErrorMessage);
@@ -25,6 +25,9 @@ public sealed class RegistrationServiceTests
         var user = await db.Users.SingleAsync(x => x.Username == "signup-user");
 
         Assert.Equal("signup@erp.local", user.Email);
+        Assert.Equal("홍길동", user.Name);
+        Assert.Equal("010-1234-5678", user.PhoneNumber);
+        Assert.Equal("테스트회사", user.Company);
         Assert.Equal(UserStatus.Pending, user.Status);
         Assert.False(user.IsActive);
 
@@ -39,7 +42,7 @@ public sealed class RegistrationServiceTests
         var fixture = CreateFixture();
 
         var registerResult = await fixture.RegistrationService.RegisterAsync(
-            new RegisterRequest("pending-user", "Password!1", null));
+            new RegisterRequest("pending-user", "Password!1", null, "테스터", "010-1111-2222", "테스트회사"));
         Assert.True(registerResult.Success);
 
         var loginResult = await fixture.AuthService.LoginAsync("pending-user", "Password!1");

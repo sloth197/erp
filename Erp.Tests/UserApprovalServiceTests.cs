@@ -139,7 +139,14 @@ public sealed class UserApprovalServiceTests
         IPasswordHasher passwordHasher = new Pbkdf2PasswordHasher();
         var currentUserContext = new CurrentUserContext();
         var actorUserId = Guid.NewGuid();
-        currentUserContext.SetAuthenticatedUser(actorUserId, "admin", [PermissionCodes.MasterUsersWrite]);
+        currentUserContext.SetAuthenticatedUser(
+            actorUserId,
+            "admin",
+            "admin@erp.local",
+            "관리자",
+            "ERP",
+            "010-0000-0000",
+            [PermissionCodes.MasterUsersWrite]);
 
         var accessControl = new AccessControlService(currentUserContext);
         var approvalService = new UserApprovalService(factory, accessControl, currentUserContext);
