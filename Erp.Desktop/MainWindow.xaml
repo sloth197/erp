@@ -43,6 +43,90 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
+
+        <Style x:Key="TopBarAlarmIconStyle"
+               TargetType="Image">
+            <Setter Property="RenderTransformOrigin" Value="0.5,0.5" />
+            <Setter Property="RenderTransform">
+                <Setter.Value>
+                    <TransformGroup>
+                        <RotateTransform Angle="0" />
+                        <ScaleTransform ScaleX="1" ScaleY="1" />
+                    </TransformGroup>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Button}}" Value="True">
+                    <DataTrigger.EnterActions>
+                        <BeginStoryboard x:Name="AlarmHoverStoryboard">
+                            <Storyboard RepeatBehavior="Forever">
+                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(RotateTransform.Angle)"
+                                                 From="-10"
+                                                 To="10"
+                                                 Duration="0:0:0.16"
+                                                 AutoReverse="True" />
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </DataTrigger.EnterActions>
+                    <DataTrigger.ExitActions>
+                        <StopStoryboard BeginStoryboardName="AlarmHoverStoryboard" />
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(RotateTransform.Angle)"
+                                                 To="0"
+                                                 Duration="0:0:0.12" />
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </DataTrigger.ExitActions>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="TopBarProfileIconStyle"
+               TargetType="Image">
+            <Setter Property="RenderTransformOrigin" Value="0.5,0.5" />
+            <Setter Property="RenderTransform">
+                <Setter.Value>
+                    <TransformGroup>
+                        <RotateTransform Angle="0" />
+                        <ScaleTransform ScaleX="1" ScaleY="1" />
+                    </TransformGroup>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Button}}" Value="True">
+                    <DataTrigger.EnterActions>
+                        <BeginStoryboard x:Name="ProfileHoverStoryboard">
+                            <Storyboard RepeatBehavior="Forever">
+                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[1].(ScaleTransform.ScaleX)"
+                                                 From="1"
+                                                 To="1.15"
+                                                 Duration="0:0:0.2"
+                                                 AutoReverse="True" />
+                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[1].(ScaleTransform.ScaleY)"
+                                                 From="1"
+                                                 To="1.15"
+                                                 Duration="0:0:0.2"
+                                                 AutoReverse="True" />
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </DataTrigger.EnterActions>
+                    <DataTrigger.ExitActions>
+                        <StopStoryboard BeginStoryboardName="ProfileHoverStoryboard" />
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[1].(ScaleTransform.ScaleX)"
+                                                 To="1"
+                                                 Duration="0:0:0.12" />
+                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[1].(ScaleTransform.ScaleY)"
+                                                 To="1"
+                                                 Duration="0:0:0.12" />
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </DataTrigger.ExitActions>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
     </Window.Resources>
 
     <Grid>
@@ -54,11 +138,12 @@
         <Border Grid.Row="0"
                 Padding="14,10"
                 Background="{StaticResource Brush.TopBarBackground}"
-                BorderBrush="#1F3656"
+                BorderBrush="#D3DBE7"
                 BorderThickness="0,0,0,1">
             <DockPanel LastChildFill="False">
                 <TextBlock Text="ERP Program"
                            Style="{StaticResource Text.WindowTitle}"
+                           Foreground="{StaticResource Brush.TextPrimary}"
                            VerticalAlignment="Center" />
 
                 <StackPanel DockPanel.Dock="Right"
@@ -69,9 +154,10 @@
                             Margin="0,0,0,0"
                             ToolTip="알림/공지"
                             Command="{Binding OpenNoticesCommand}">
-                        <Image Source="pack://application:,,,/Assets/Icons/alarm.png"
+                        <Image Source="pack://application:,,,/Assets/Icons/alarmani.png"
                                Width="22"
                                Height="22"
+                               Style="{StaticResource TopBarAlarmIconStyle}"
                                Stretch="Uniform" />
                     </Button>
 
@@ -79,20 +165,11 @@
                             Margin="14,0,0,0"
                             ToolTip="내 정보"
                             Command="{Binding OpenMyInfoCommand}">
-                        <Image Width="22"
+                        <Image Source="pack://application:,,,/Assets/Icons/profileani.png"
+                               Width="22"
                                Height="22"
-                               Stretch="Uniform">
-                            <Image.Style>
-                                <Style TargetType="Image">
-                                    <Setter Property="Source" Value="pack://application:,,,/Assets/Icons/employee.png" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding CurrentRole}" Value="Admin">
-                                            <Setter Property="Source" Value="pack://application:,,,/Assets/Icons/admin.png" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Image.Style>
-                        </Image>
+                               Style="{StaticResource TopBarProfileIconStyle}"
+                               Stretch="Uniform" />
                     </Button>
 
                     <Button Style="{StaticResource TopBarActionButtonStyle}"

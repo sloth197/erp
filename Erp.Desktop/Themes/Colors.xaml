@@ -3,7 +3,7 @@
     <Color x:Key="Color.WindowBackground">#FFF2F4F8</Color>
     <Color x:Key="Color.SurfacePrimary">#FFFFFFFF</Color>
     <Color x:Key="Color.SurfaceAlt">#FFF8FAFC</Color>
-    <Color x:Key="Color.TopBarBackground">#FF13233A</Color>
+    <Color x:Key="Color.TopBarBackground">#FFF4F7FB</Color>
     <Color x:Key="Color.SidebarBackground">#FF0B1730</Color>
     <Color x:Key="Color.BorderDefault">#FFD0D7E2</Color>
     <Color x:Key="Color.TextPrimary">#FF0F172A</Color>
