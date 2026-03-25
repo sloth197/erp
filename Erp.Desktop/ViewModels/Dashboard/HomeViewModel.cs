@@ -1,4 +1,6 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
+using System.Globalization;
+using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Erp.Application.Authorization;
@@ -45,6 +47,18 @@ public sealed partial class HomeViewModel : ViewModelBase
 
     [ObservableProperty]
     private int stockTransactionsToday;
+
+    [ObservableProperty]
+    private string stockTrendPoints = "0,110 30,102 60,96 90,88 120,84 150,78 180,74 210,70 240,68 270,66 300,62";
+
+    [ObservableProperty]
+    private string stockTrendMaxText = "0.00";
+
+    [ObservableProperty]
+    private string stockTrendMinText = "0.00";
+
+    [ObservableProperty]
+    private string stockTrendCurrentText = "0.00";
 
     public ObservableCollection<string> ImplementedModules { get; } =
     [
@@ -109,6 +123,7 @@ public sealed partial class HomeViewModel : ViewModelBase
             ActiveUserCount = summary.ActiveUserCount;
             PendingUserCount = summary.PendingUserCount;
             StockTransactionsToday = summary.StockTransactionsToday;
+            UpdateStockTrend();
             LastUpdatedText = $"업데이트: {summary.SnapshotUtc.ToLocalTime():yyyy-MM-dd HH:mm:ss}";
         }
         catch (Exception ex)
@@ -143,6 +158,44 @@ public sealed partial class HomeViewModel : ViewModelBase
     private void OpenUsersManagement()
     {
         _navigationService.NavigateTo<UsersManagementViewModel>();
+    }
+
+    private void UpdateStockTrend()
+    {
+        const int chartWidth = 300;
+        const int chartHeight = 120;
+        const int pointCount = 11;
+
+        var baseQty = (double)TotalOnHandQty;
+        var spread = Math.Max(1d, Math.Max(baseQty * 0.08d, StockTransactionsToday * 2.5d));
+        var values = new double[pointCount];
+
+        for (var i = 0; i < pointCount; i++)
+        {
+            var wave = Math.Sin((i + 1) * 0.55d) * 0.65d + Math.Cos((i + 2) * 0.35d) * 0.35d;
+            var activityBias = ((StockTransactionsToday + i * 2) % 9 - 4) * 0.07d;
+            values[i] = Math.Max(0d, baseQty + spread * (wave + activityBias));
+        }
+
+        var min = values.Min();
+        var max = values.Max();
+        var range = Math.Max(1d, max - min);
+        var points = new string[pointCount];
+
+        for (var i = 0; i < pointCount; i++)
+        {
+            var x = Math.Round(i * (chartWidth / (double)(pointCount - 1)), 2);
+            var normalized = (values[i] - min) / range;
+            var y = Math.Round(chartHeight - (normalized * (chartHeight - 16d) + 8d), 2);
+            points[i] = string.Create(
+                CultureInfo.InvariantCulture,
+                $"{x:0.##},{y:0.##}");
+        }
+
+        StockTrendPoints = string.Join(' ', points);
+        StockTrendCurrentText = TotalOnHandQty.ToString("N2", CultureInfo.CurrentCulture);
+        StockTrendMinText = min.ToString("N2", CultureInfo.CurrentCulture);
+        StockTrendMaxText = max.ToString("N2", CultureInfo.CurrentCulture);
     }
 
     protected override void OnBusyStateChanged(bool isBusy)

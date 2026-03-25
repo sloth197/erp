@@ -56,13 +56,13 @@ public sealed partial class MyInfoViewModel : ObservableObject
             : _currentUserContext.Name!;
 
         Email = string.IsNullOrWhiteSpace(_currentUserContext.Email)
-            ? "미등록"
+            ? "xhbtsupport@gmail.com"
             : _currentUserContext.Email!;
         Company = string.IsNullOrWhiteSpace(_currentUserContext.Company)
-            ? "미등록"
+            ? "OO회사"
             : _currentUserContext.Company!;
         PhoneNumber = string.IsNullOrWhiteSpace(_currentUserContext.PhoneNumber)
-            ? "미등록"
+            ? "010-0000-0000"
             : _currentUserContext.PhoneNumber!;
         Position = ResolvePosition();
 

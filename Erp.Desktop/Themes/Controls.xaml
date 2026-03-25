@@ -20,6 +20,7 @@
                             CornerRadius="4">
                         <ContentPresenter HorizontalAlignment="Center"
                                           VerticalAlignment="Center"
+                                          TextElement.Foreground="{TemplateBinding Foreground}"
                                           Margin="{TemplateBinding Padding}" />
                     </Border>
                     <ControlTemplate.Triggers>
@@ -100,13 +101,13 @@
 
     <Style x:Key="SidebarMenuButtonStyle" TargetType="Button">
         <Setter Property="FontFamily" Value="{StaticResource FontFamily.App}" />
-        <Setter Property="FontSize" Value="13" />
-        <Setter Property="MinHeight" Value="36" />
+        <Setter Property="FontSize" Value="15" />
+        <Setter Property="MinHeight" Value="44" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="HorizontalContentAlignment" Value="Left" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
-        <Setter Property="Margin" Value="0,0,0,6" />
-        <Setter Property="Padding" Value="12,9" />
+        <Setter Property="Margin" Value="0,0,0,8" />
+        <Setter Property="Padding" Value="14,11" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Background" Value="#14243F" />
         <Setter Property="Foreground" Value="#F5FAFF" />
@@ -161,13 +162,45 @@
         </Style.Triggers>
     </Style>
 
-    <Style x:Key="TopBarActionButtonStyle"
-           TargetType="Button"
-           BasedOn="{StaticResource {x:Type Button}}">
-        <Setter Property="Foreground" Value="{StaticResource Brush.TextInverse}" />
+    <Style x:Key="TopBarActionButtonStyle" TargetType="Button">
+        <Setter Property="FontFamily" Value="{StaticResource FontFamily.App}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Padding" Value="14,6" />
+        <Setter Property="MinHeight" Value="34" />
+        <Setter Property="Foreground" Value="#FFFFFF" />
+        <Setter Property="TextElement.Foreground" Value="#FFFFFF" />
         <Setter Property="Background" Value="#263B5A" />
         <Setter Property="BorderBrush" Value="#355077" />
-        <Setter Property="Padding" Value="14,6" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Root"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="4">
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          Margin="{TemplateBinding Padding}" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="#1D2F49" />
+                            <Setter TargetName="Root" Property="BorderBrush" Value="#5C8CC4" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="#16273E" />
+                            <Setter TargetName="Root" Property="BorderBrush" Value="#4E79AC" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Root" Property="Opacity" Value="0.55" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
     <Style x:Key="TopBarBadgeStyle" TargetType="Border">
