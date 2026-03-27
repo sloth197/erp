@@ -143,6 +143,7 @@ public sealed partial class SignupViewModel : ViewModelBase
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(VerifyCodeCommand))]
+    [NotifyPropertyChangedFor(nameof(SendVerificationButtonText))]
     private bool isCodeSent;
 
     [ObservableProperty]
@@ -150,6 +151,8 @@ public sealed partial class SignupViewModel : ViewModelBase
 
     [ObservableProperty]
     private bool isRegistrationSucceeded;
+
+    public string SendVerificationButtonText => IsCodeSent ? "재요청" : "전송 요청";
 
     public SignupViewModel(
         IAuthApiClient authApiClient,

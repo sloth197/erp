@@ -137,7 +137,7 @@
                     </Grid>
 
                     <WrapPanel Margin="0,12,0,0">
-                        <Button Content="전송 요청"
+                        <Button Content="{Binding SendVerificationButtonText}"
                                 Width="120"
                                 Height="32"
                                 Command="{Binding SendVerificationCodeCommand}" />

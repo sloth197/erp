@@ -19,14 +19,6 @@ public abstract partial class PlaceholderPageViewModel : ObservableObject
     private string description = string.Empty;
 }
 
-[RequiredPermission(PermissionCodes.MasterPartnersRead)]
-public sealed class PartnersViewModel : PlaceholderPageViewModel
-{
-    public PartnersViewModel() : base("거래처 관리", "고객/공급처 기준정보 관리 화면(placeholder)")
-    {
-    }
-}
-
 [RequiredPermission(PermissionCodes.MasterItemsRead)]
 public sealed class WarehousesViewModel : PlaceholderPageViewModel
 {

@@ -13,7 +13,7 @@
             BorderBrush="#FDBA74"
             Visibility="{Binding HasErrors, ElementName=Root, Converter={StaticResource BoolToVisibility}}">
         <StackPanel>
-            <TextBlock Text="Please check these fields:" FontWeight="SemiBold" />
+            <TextBlock Text="필수 입력 항목을 확인해 주세요." FontWeight="SemiBold" />
             <ItemsControl ItemsSource="{Binding Errors, ElementName=Root}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>

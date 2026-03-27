@@ -49,6 +49,10 @@
                 <views:ItemsView />
             </DataTemplate>
 
+            <DataTemplate DataType="{x:Type vms:PartnersViewModel}">
+                <views:PartnersView />
+            </DataTemplate>
+
             <DataTemplate DataType="{x:Type vms:InventoryOnHandViewModel}">
                 <views:InventoryOnHandView />
             </DataTemplate>

@@ -44,6 +44,7 @@ public partial class App : System.Windows.Application
 
                 services.AddSingleton<IUserMessageService, UserMessageService>();
                 services.AddSingleton<IFileSaveDialogService, FileSaveDialogService>();
+                services.AddSingleton<IAddressSearchService, AddressSearchService>();
                 services.AddSingleton<IItemCsvExportService, ItemCsvExportService>();
                 services.AddSingleton<IAuthApiClient>(_ => new AuthApiClient(authApiBaseUrl));
 
