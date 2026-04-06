@@ -40,8 +40,8 @@
             </StackPanel>
 
             <Button DockPanel.Dock="Right"
-                    Content="새로고침"
-                    Width="92"
+                    Content="업데이트 동기화"
+                    Width="122"
                     Height="34"
                     Margin="12,0,0,0"
                     Command="{Binding RefreshCommand}" />

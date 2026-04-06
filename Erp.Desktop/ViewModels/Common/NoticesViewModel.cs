@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using Erp.Application.Authorization;
 using Erp.Application.Interfaces;
 using Erp.Desktop.Navigation;
+using Erp.Domain.Entities;
 
 namespace Erp.Desktop.ViewModels;
 
@@ -74,9 +75,12 @@ public sealed partial class NoticesViewModel : ViewModelBase
             ? "current-user"
             : currentUserContext.Username.Trim();
 
+        var currentJobGrade = currentUserContext.JobGrade ?? UserJobGrade.Staff;
+        var canComposeByGrade = currentJobGrade >= UserJobGrade.Manager;
+
         CanRead = currentUserContext.HasPermission(PermissionCodes.NoticeRead);
-        CanWrite = currentUserContext.HasPermission(PermissionCodes.NoticeWrite);
-        CanPublish = currentUserContext.HasPermission(PermissionCodes.NoticePublish);
+        CanWrite = canComposeByGrade;
+        CanPublish = currentUserContext.HasPermission(PermissionCodes.NoticePublish) && canComposeByGrade;
 
         StatusFilters = new ObservableCollection<NoticeStatusFilterOption>
         {

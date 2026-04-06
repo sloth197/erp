@@ -74,7 +74,6 @@ public sealed partial class HomeViewModel : ViewModelBase
     public ObservableCollection<string> PlannedModules { get; } =
     [
         "거래처 관리",
-        "창고 관리",
         "발주",
         "주문",
         "출고"
@@ -97,7 +96,7 @@ public sealed partial class HomeViewModel : ViewModelBase
         _navigationService = navigationService;
         _currentUserContext = currentUserContext;
 
-        _ = RefreshAsync();
+        _ = LoadDashboardAsync(isManualSync: false);
     }
 
     private bool CanRefresh() => !IsBusy;
@@ -108,6 +107,11 @@ public sealed partial class HomeViewModel : ViewModelBase
 
     [RelayCommand(CanExecute = nameof(CanRefresh))]
     private async Task RefreshAsync()
+    {
+        await LoadDashboardAsync(isManualSync: true);
+    }
+
+    private async Task LoadDashboardAsync(bool isManualSync)
     {
         try
         {
@@ -125,6 +129,11 @@ public sealed partial class HomeViewModel : ViewModelBase
             StockTransactionsToday = summary.StockTransactionsToday;
             UpdateStockTrend();
             LastUpdatedText = $"업데이트: {summary.SnapshotUtc.ToLocalTime():yyyy-MM-dd HH:mm:ss}";
+
+            if (isManualSync)
+            {
+                SetSuccess($"대시보드 업데이트 동기화 완료 ({DateTime.Now:HH:mm:ss})");
+            }
         }
         catch (Exception ex)
         {

@@ -1,4 +1,5 @@
-﻿using Erp.Application.DTOs;
+using Erp.Application.DTOs;
+using Erp.Domain.Entities;
 
 namespace Erp.Application.Interfaces;
 
@@ -9,5 +10,6 @@ public interface IUserService
     Task<UserSummaryDto> CreateUserAsync(string username, string password, string roleName, CancellationToken cancellationToken = default);
     Task DisableUserAsync(Guid userId, CancellationToken cancellationToken = default);
     Task AssignRoleAsync(Guid userId, string roleName, CancellationToken cancellationToken = default);
+    Task AssignJobGradeAsync(Guid userId, UserJobGrade jobGrade, CancellationToken cancellationToken = default);
     Task GrantPermissionToRoleAsync(string roleName, string permissionCode, CancellationToken cancellationToken = default);
 }

@@ -1,4 +1,6 @@
-﻿namespace Erp.Application.Interfaces;
+using Erp.Domain.Entities;
+
+namespace Erp.Application.Interfaces;
 
 public interface ICurrentUserContext
 {
@@ -8,6 +10,7 @@ public interface ICurrentUserContext
     string? Name { get; }
     string? Company { get; }
     string? PhoneNumber { get; }
+    UserJobGrade? JobGrade { get; }
     bool IsAuthenticated { get; }
     IReadOnlyCollection<string> PermissionCodes { get; }
 

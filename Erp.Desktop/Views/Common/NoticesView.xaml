@@ -5,6 +5,10 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:controls="clr-namespace:Erp.Desktop.Controls"
              mc:Ignorable="d">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+    </UserControl.Resources>
+
     <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -116,6 +120,7 @@
                         Margin="0,20,0,0"
                         VerticalAlignment="Top"
                         Content="새 공지"
+                        Visibility="{Binding CanWrite, Converter={StaticResource BoolToVisibilityConverter}}"
                         Command="{Binding AddNoticeCommand}" />
             </Grid>
         </Border>
@@ -128,6 +133,17 @@
             </Grid.ColumnDefinitions>
 
             <Grid Grid.Column="0">
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Setter Property="Grid.ColumnSpan" Value="1" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding CanWrite}" Value="False">
+                                <Setter Property="Grid.ColumnSpan" Value="3" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
@@ -235,12 +251,14 @@
                           VerticalAlignment="Stretch"
                           ResizeBehavior="PreviousAndNext"
                           ResizeDirection="Columns"
+                          Visibility="{Binding CanWrite, Converter={StaticResource BoolToVisibilityConverter}}"
                           Background="#E5E7EB" />
 
             <Border Grid.Column="2"
                     Padding="12"
                     BorderBrush="#D0D7E2"
                     BorderThickness="1"
+                    Visibility="{Binding CanWrite, Converter={StaticResource BoolToVisibilityConverter}}"
                     CornerRadius="6">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel>

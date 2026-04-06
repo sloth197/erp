@@ -1,7 +1,9 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
+using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Erp.Application.Authorization;
+using Erp.Application.Commands;
 using Erp.Application.DTOs;
 using Erp.Application.Interfaces;
 using Erp.Application.Queries;
@@ -13,12 +15,15 @@ namespace Erp.Desktop.ViewModels;
 public sealed partial class InventoryOnHandViewModel : ViewModelBase
 {
     private readonly IInventoryQueryService _inventoryQueryService;
+    private readonly IInventoryCommandService _inventoryCommandService;
     private readonly IItemQueryService _itemQueryService;
+    private readonly INavigationService _navigationService;
 
     [ObservableProperty]
     private ObservableCollection<WarehouseFilterOption> warehouses = new();
 
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ApplyCountAdjustmentCommand))]
     private WarehouseFilterOption? selectedWarehouse;
 
     [ObservableProperty]
@@ -31,6 +36,7 @@ public sealed partial class InventoryOnHandViewModel : ViewModelBase
     private string? keyword;
 
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ApplyCountAdjustmentCommand))]
     private bool includeLocations = true;
 
     [ObservableProperty]
@@ -41,6 +47,17 @@ public sealed partial class InventoryOnHandViewModel : ViewModelBase
 
     [ObservableProperty]
     private ObservableCollection<StockOnHandRow> rows = new();
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ApplyCountAdjustmentCommand))]
+    private StockOnHandRow? selectedRow;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ApplyCountAdjustmentCommand))]
+    private string countedQtyInput = string.Empty;
+
+    [ObservableProperty]
+    private string adjustNote = string.Empty;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(PreviousPageCommand))]
@@ -74,23 +91,49 @@ public sealed partial class InventoryOnHandViewModel : ViewModelBase
         ]);
 
     public bool CanRead { get; }
+    public bool CanReceiptManage { get; }
+    public bool CanIssueManage { get; }
+    public bool CanAdjustManage { get; }
     public int TotalPages => PageSize <= 0 ? 0 : (int)Math.Ceiling(TotalCount / (double)PageSize);
     public bool ShowEmptyState => !IsBusy && Rows.Count == 0;
+    public string SelectedRowSummary => SelectedRow is null
+        ? "선택된 재고 행이 없습니다."
+        : $"{SelectedRow.ItemCode} / {SelectedRow.ItemName} / 로케이션: {SelectedRow.LocationCode ?? "(공통)"} / 현재수량: {SelectedRow.QtyOnHand:N4}";
 
     public InventoryOnHandViewModel(
         IInventoryQueryService inventoryQueryService,
+        IInventoryCommandService inventoryCommandService,
         IItemQueryService itemQueryService,
+        INavigationService navigationService,
         ICurrentUserContext currentUserContext)
     {
         _inventoryQueryService = inventoryQueryService;
+        _inventoryCommandService = inventoryCommandService;
         _itemQueryService = itemQueryService;
+        _navigationService = navigationService;
         CanRead = currentUserContext.HasPermission(PermissionCodes.InventoryStockRead);
+        CanReceiptManage = currentUserContext.HasPermission(PermissionCodes.InventoryStockReceipt);
+        CanIssueManage = currentUserContext.HasPermission(PermissionCodes.InventoryStockIssue);
+        CanAdjustManage = currentUserContext.HasPermission(PermissionCodes.InventoryStockAdjust);
         _ = InitializeAsync();
     }
 
     partial void OnRowsChanged(ObservableCollection<StockOnHandRow> value)
     {
         OnPropertyChanged(nameof(ShowEmptyState));
+    }
+
+    partial void OnSelectedRowChanged(StockOnHandRow? value)
+    {
+        OnPropertyChanged(nameof(SelectedRowSummary));
+
+        if (value is null)
+        {
+            CountedQtyInput = string.Empty;
+            return;
+        }
+
+        CountedQtyInput = value.QtyOnHand.ToString("0.####", CultureInfo.CurrentCulture);
     }
 
     private bool CanSearch()
@@ -108,6 +151,26 @@ public sealed partial class InventoryOnHandViewModel : ViewModelBase
         return !IsBusy && CanRead && Page < TotalPages;
     }
 
+    private bool CanOpenStockReceipt()
+    {
+        return !IsBusy && CanReceiptManage;
+    }
+
+    private bool CanOpenStockIssue()
+    {
+        return !IsBusy && CanIssueManage;
+    }
+
+    private bool CanApplyCountAdjustment()
+    {
+        if (IsBusy || !CanAdjustManage || SelectedWarehouse is null || SelectedRow is null || !IncludeLocations)
+        {
+            return false;
+        }
+
+        return TryParseNonNegativeQty(CountedQtyInput, out _);
+    }
+
     [RelayCommand(CanExecute = nameof(CanSearch))]
     private async Task SearchAsync()
     {
@@ -118,6 +181,77 @@ public sealed partial class InventoryOnHandViewModel : ViewModelBase
     private async Task LoadAsync()
     {
         await LoadInternalAsync(resetPage: false);
+    }
+
+    [RelayCommand(CanExecute = nameof(CanOpenStockReceipt))]
+    private void OpenStockReceipt()
+    {
+        _navigationService.NavigateTo<StockReceiptViewModel>();
+    }
+
+    [RelayCommand(CanExecute = nameof(CanOpenStockIssue))]
+    private void OpenStockIssue()
+    {
+        _navigationService.NavigateTo<StockIssueViewModel>();
+    }
+
+    [RelayCommand(CanExecute = nameof(CanApplyCountAdjustment))]
+    private async Task ApplyCountAdjustmentAsync()
+    {
+        if (SelectedWarehouse is null || SelectedRow is null)
+        {
+            return;
+        }
+
+        if (!IncludeLocations)
+        {
+            SetError("실사 조정은 '로케이션 포함' 조회에서만 지원됩니다.");
+            return;
+        }
+
+        if (!TryParseNonNegativeQty(CountedQtyInput, out var countedQty))
+        {
+            SetError("실사수량은 0 이상의 숫자여야 합니다.");
+            return;
+        }
+
+        try
+        {
+            ClearUserMessage();
+            SetBusy(true, "실사 조정 반영 중...");
+
+            var itemId = await ResolveItemIdAsync(SelectedRow.ItemCode);
+            var locationId = await ResolveLocationIdAsync(SelectedWarehouse.Id, SelectedRow.LocationCode);
+            var note = string.IsNullOrWhiteSpace(AdjustNote)
+                ? $"재고조회 화면 실사 조정 ({SelectedRow.ItemCode})"
+                : AdjustNote.Trim();
+
+            var result = await _inventoryCommandService.AdjustStockByCountAsync(new AdjustStockByCountCommand
+            {
+                WarehouseId = SelectedWarehouse.Id,
+                LocationId = locationId,
+                Lines =
+                [
+                    new AdjustStockByCountLineCommand
+                    {
+                        ItemId = itemId,
+                        CountedQty = countedQty,
+                        Note = note
+                    }
+                ]
+            });
+
+            SetSuccess($"실사 조정 완료: {result.TxNo}");
+            await LoadInternalAsync(resetPage: false);
+        }
+        catch (Exception ex)
+        {
+            SetError(ex.Message);
+        }
+        finally
+        {
+            SetBusy(false);
+        }
     }
 
     [RelayCommand(CanExecute = nameof(CanGoPrevious))]
@@ -201,6 +335,7 @@ public sealed partial class InventoryOnHandViewModel : ViewModelBase
         {
             Rows = new ObservableCollection<StockOnHandRow>();
             TotalCount = 0;
+            SelectedRow = null;
             SetError("조회 권한이 필요합니다.");
             return;
         }
@@ -209,6 +344,7 @@ public sealed partial class InventoryOnHandViewModel : ViewModelBase
         {
             Rows = new ObservableCollection<StockOnHandRow>();
             TotalCount = 0;
+            SelectedRow = null;
             SetError("창고를 선택해 주세요.");
             return;
         }
@@ -239,6 +375,7 @@ public sealed partial class InventoryOnHandViewModel : ViewModelBase
             TotalCount = result.TotalCount;
             Page = result.Page;
             PageSize = result.PageSize;
+            SelectedRow = Rows.FirstOrDefault();
 
             if (Rows.Count == 0)
             {
@@ -255,12 +392,69 @@ public sealed partial class InventoryOnHandViewModel : ViewModelBase
         }
     }
 
+    private async Task<Guid> ResolveItemIdAsync(string itemCode)
+    {
+        var candidates = await _inventoryQueryService.SearchItemOptionsAsync(
+            keyword: itemCode,
+            take: 50,
+            activeOnly: false);
+
+        var matches = candidates
+            .Where(x => string.Equals(x.ItemCode, itemCode, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (matches.Count == 0)
+        {
+            throw new InvalidOperationException($"품목 '{itemCode}'를 찾을 수 없습니다.");
+        }
+
+        if (matches.Count > 1)
+        {
+            throw new InvalidOperationException($"품목 코드 '{itemCode}'가 중복되어 실사 조정을 진행할 수 없습니다.");
+        }
+
+        return matches[0].Id;
+    }
+
+    private async Task<Guid?> ResolveLocationIdAsync(Guid warehouseId, string? locationCode)
+    {
+        if (string.IsNullOrWhiteSpace(locationCode))
+        {
+            return null;
+        }
+
+        var locations = await _inventoryQueryService.GetLocationOptionsAsync(
+            warehouseId: warehouseId,
+            activeOnly: false);
+
+        var match = locations.FirstOrDefault(x =>
+            string.Equals(x.Code, locationCode.Trim(), StringComparison.OrdinalIgnoreCase));
+
+        if (match is null)
+        {
+            throw new InvalidOperationException($"로케이션 '{locationCode}'를 찾을 수 없습니다.");
+        }
+
+        return match.Id;
+    }
+
+    private static bool TryParseNonNegativeQty(string? input, out decimal qty)
+    {
+        var hasValue = decimal.TryParse(input, NumberStyles.Number, CultureInfo.CurrentCulture, out qty) ||
+                       decimal.TryParse(input, NumberStyles.Number, CultureInfo.InvariantCulture, out qty);
+
+        return hasValue && qty >= 0m;
+    }
+
     protected override void OnBusyStateChanged(bool isBusy)
     {
         SearchCommand.NotifyCanExecuteChanged();
         LoadCommand.NotifyCanExecuteChanged();
         PreviousPageCommand.NotifyCanExecuteChanged();
         NextPageCommand.NotifyCanExecuteChanged();
+        OpenStockReceiptCommand.NotifyCanExecuteChanged();
+        OpenStockIssueCommand.NotifyCanExecuteChanged();
+        ApplyCountAdjustmentCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(ShowEmptyState));
     }
 

@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using Erp.Application.Authorization;
 using Erp.Application.Interfaces;
 using Erp.Desktop.Navigation;
+using Erp.Domain.Entities;
 
 namespace Erp.Desktop.ViewModels;
 
@@ -24,10 +25,10 @@ public sealed partial class MyInfoViewModel : ObservableObject
     private string email = "미등록";
 
     [ObservableProperty]
-    private string position = "미등록";
+    private string position = "사원";
 
     [ObservableProperty]
-    private string note = "회사/전화번호/직급은 아직 계정 정보 연동 전이라 임시 표시됩니다.";
+    private string note = "회사/전화번호/직급은 계정 정보 기준으로 표시됩니다.";
 
     public MyInfoViewModel(ICurrentUserContext currentUserContext, INavigationService navigationService)
     {
@@ -79,12 +80,22 @@ public sealed partial class MyInfoViewModel : ObservableObject
             return "Guest";
         }
 
-        if (_currentUserContext.HasPermission(PermissionCodes.MasterUsersWrite) ||
-            _currentUserContext.HasPermission(PermissionCodes.SystemSettingsWrite))
+        var label = (_currentUserContext.JobGrade ?? UserJobGrade.Staff) switch
         {
-            return "Admin";
-        }
+            UserJobGrade.Staff => "사원",
+            UserJobGrade.AssistantManager => "대리",
+            UserJobGrade.Manager => "과장",
+            UserJobGrade.DeputyGeneralManager => "차장",
+            UserJobGrade.GeneralManager => "부장",
+            UserJobGrade.President => "사장",
+            _ => "사원"
+        };
 
-        return "Staff";
+        var systemRole = (_currentUserContext.HasPermission(PermissionCodes.MasterUsersWrite) ||
+                          _currentUserContext.HasPermission(PermissionCodes.SystemSettingsWrite))
+            ? "Admin"
+            : "Staff";
+
+        return $"{label} ({systemRole})";
     }
 }

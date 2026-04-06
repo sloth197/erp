@@ -541,6 +541,13 @@ public sealed class ErpDbContext : DbContext
             .HasColumnName("company")
             .HasMaxLength(100);
 
+        user.Property(x => x.JobGrade)
+            .HasColumnName("job_grade")
+            .HasConversion<string>()
+            .HasMaxLength(40)
+            .IsRequired()
+            .HasDefaultValue(UserJobGrade.Staff);
+
         user.Property(x => x.Status)
             .HasColumnName("status")
             .HasConversion<string>()

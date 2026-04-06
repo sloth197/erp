@@ -1,0 +1,186 @@
+<UserControl x:Class="Erp.Desktop.Views.SalesOrdersView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:Erp.Desktop.Controls">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel>
+            <TextBlock Text="{Binding Title}" FontSize="22" FontWeight="SemiBold" />
+            <TextBlock Margin="0,6,0,0"
+                       Foreground="#667085"
+                       Text="{Binding Description}" />
+        </StackPanel>
+
+        <Border Grid.Row="1"
+                Margin="0,12,0,10"
+                Padding="12"
+                BorderBrush="#D0D7E2"
+                BorderThickness="1"
+                CornerRadius="6">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.6*" />
+                    <ColumnDefinition Width="1.2*" />
+                    <ColumnDefinition Width="1.2*" />
+                    <ColumnDefinition Width="1.2*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                    <TextBlock Text="고객사" Margin="0,0,0,4" />
+                    <TextBox Text="{Binding CustomerKeyword, UpdateSourceTrigger=PropertyChanged}"
+                             ToolTip="고객사명 또는 사업자번호" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Margin="0,0,10,0">
+                    <TextBlock Text="주문일" Margin="0,0,0,4" />
+                    <DatePicker SelectedDate="{Binding OrderDateFilter}" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Margin="0,0,10,0">
+                    <TextBlock Text="판매채널" Margin="0,0,0,4" />
+                    <ComboBox ItemsSource="{Binding ChannelOptions}"
+                              SelectedItem="{Binding SelectedChannel}"
+                              DisplayMemberPath="Name" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="3" Margin="0,0,10,0">
+                    <TextBlock Text="진행상태" Margin="0,0,0,4" />
+                    <ComboBox ItemsSource="{Binding StatusOptions}"
+                              SelectedItem="{Binding SelectedStatus}"
+                              DisplayMemberPath="Name" />
+                </StackPanel>
+
+                <Button Grid.Column="4"
+                        Width="84"
+                        Margin="0,18,8,0"
+                        VerticalAlignment="Top"
+                        Content="조회"
+                        Command="{Binding SearchCommand}" />
+
+                <Button Grid.Column="5"
+                        Width="108"
+                        Margin="0,18,0,0"
+                        VerticalAlignment="Top"
+                        Content="신규 주문"
+                        Command="{Binding CreateOrderCommand}" />
+            </Grid>
+        </Border>
+
+        <UniformGrid Grid.Row="2"
+                     Margin="0,0,0,10"
+                     Columns="4">
+            <Border Margin="0,0,8,0"
+                    Padding="10"
+                    BorderBrush="#D0D7E2"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Background="#F8FAFC">
+                <StackPanel>
+                    <TextBlock Foreground="#475467" Text="오늘 접수" />
+                    <TextBlock Margin="0,4,0,0"
+                               FontSize="20"
+                               FontWeight="SemiBold"
+                               Text="{Binding TodayReceivedCount, StringFormat={}{0:N0}건}" />
+                </StackPanel>
+            </Border>
+
+            <Border Margin="0,0,8,0"
+                    Padding="10"
+                    BorderBrush="#D0D7E2"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Background="#F8FAFC">
+                <StackPanel>
+                    <TextBlock Foreground="#475467" Text="출고 대기" />
+                    <TextBlock Margin="0,4,0,0"
+                               FontSize="20"
+                               FontWeight="SemiBold"
+                               Text="{Binding PendingShipmentCount, StringFormat={}{0:N0}건}" />
+                </StackPanel>
+            </Border>
+
+            <Border Margin="0,0,8,0"
+                    Padding="10"
+                    BorderBrush="#D0D7E2"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Background="#F8FAFC">
+                <StackPanel>
+                    <TextBlock Foreground="#475467" Text="부분출고" />
+                    <TextBlock Margin="0,4,0,0"
+                               FontSize="20"
+                               FontWeight="SemiBold"
+                               Text="{Binding PartialShipmentCount, StringFormat={}{0:N0}건}" />
+                </StackPanel>
+            </Border>
+
+            <Border Padding="10"
+                    BorderBrush="#D0D7E2"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Background="#F8FAFC">
+                <StackPanel>
+                    <TextBlock Foreground="#475467" Text="미수금 위험" />
+                    <TextBlock Margin="0,4,0,0"
+                               FontSize="20"
+                               FontWeight="SemiBold"
+                               Text="{Binding CreditRiskCount, StringFormat={}{0:N0}건}" />
+                </StackPanel>
+            </Border>
+        </UniformGrid>
+
+        <DataGrid Grid.Row="3"
+                  ItemsSource="{Binding Rows}"
+                  SelectedItem="{Binding SelectedRow}"
+                  AutoGenerateColumns="False"
+                  CanUserAddRows="False"
+                  IsReadOnly="True">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="SO No" Binding="{Binding SoNumber}" Width="130" />
+                <DataGridTextColumn Header="고객사" Binding="{Binding CustomerName}" Width="1.8*" />
+                <DataGridTextColumn Header="주문일" Binding="{Binding OrderDate, StringFormat=yyyy-MM-dd}" Width="120" />
+                <DataGridTextColumn Header="납품요청일" Binding="{Binding RequestedDeliveryDate, StringFormat=yyyy-MM-dd}" Width="130" />
+                <DataGridTextColumn Header="품목수" Binding="{Binding ItemCount, StringFormat={}{0:N0}}" Width="90" />
+                <DataGridTextColumn Header="주문금액" Binding="{Binding OrderAmount, StringFormat={}{0:N0}}" Width="130" />
+                <DataGridTextColumn Header="출고우선순위" Binding="{Binding Priority}" Width="130" />
+                <DataGridTextColumn Header="상태" Binding="{Binding Status}" Width="110" />
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <DockPanel Grid.Row="4" Margin="0,10,0,0">
+            <TextBlock DockPanel.Dock="Left"
+                       VerticalAlignment="Center"
+                       Foreground="#667085"
+                       Text="레이아웃 시안: 주문 접수 -> 확정 -> 출고 연계 흐름으로 확장 예정" />
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button Width="98"
+                        Content="주문 확정"
+                        Command="{Binding ConfirmOrderCommand}" />
+                <Button Width="98"
+                        Margin="8,0,0,0"
+                        Content="배차 계획"
+                        Command="{Binding PlanDeliveryCommand}" />
+            </StackPanel>
+        </DockPanel>
+
+        <controls:MessageBar Grid.Row="5"
+                             Margin="0,10,0,0"
+                             Message="{Binding UserMessage.Text}"
+                             Kind="{Binding UserMessage.Kind}"
+                             IsOpen="{Binding HasUserMessage}" />
+
+        <controls:BusyOverlay Grid.RowSpan="6"
+                              IsBusy="{Binding IsBusy}"
+                              Message="{Binding BusyMessage}" />
+    </Grid>
+</UserControl>

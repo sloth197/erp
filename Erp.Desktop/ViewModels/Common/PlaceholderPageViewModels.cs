@@ -27,27 +27,3 @@ public sealed class WarehousesViewModel : PlaceholderPageViewModel
     }
 }
 
-[RequiredPermission(PermissionCodes.PurchaseOrdersRead)]
-public sealed class PurchaseOrdersViewModel : PlaceholderPageViewModel
-{
-    public PurchaseOrdersViewModel() : base("발주", "발주 관리 화면(placeholder)")
-    {
-    }
-}
-
-[RequiredPermission(PermissionCodes.SalesOrdersRead)]
-public sealed class SalesOrdersViewModel : PlaceholderPageViewModel
-{
-    public SalesOrdersViewModel() : base("주문", "판매 주문 관리 화면(placeholder)")
-    {
-    }
-}
-
-[RequiredPermission(PermissionCodes.SalesOrdersWrite)]
-public sealed class SalesRevenueViewModel : PlaceholderPageViewModel
-{
-    public SalesRevenueViewModel() : base("출고", "판매 출고 처리 화면(placeholder)")
-    {
-    }
-}
-

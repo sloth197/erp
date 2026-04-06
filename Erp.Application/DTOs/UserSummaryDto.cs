@@ -7,4 +7,5 @@ public sealed record UserSummaryDto(
     bool IsActive,
     int FailedLoginCount,
     DateTime? LockoutEndUtc,
+    Erp.Domain.Entities.UserJobGrade JobGrade,
     IReadOnlyList<string> Roles);

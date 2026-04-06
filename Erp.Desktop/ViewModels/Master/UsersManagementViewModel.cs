@@ -26,6 +26,7 @@ public sealed partial class UsersManagementViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(DisableSelectedUserCommand))]
     [NotifyCanExecuteChangedFor(nameof(ActivateSelectedUserCommand))]
     [NotifyCanExecuteChangedFor(nameof(AssignRoleCommand))]
+    [NotifyCanExecuteChangedFor(nameof(AssignJobGradeCommand))]
     private UserRow? selectedUser;
 
     [ObservableProperty]
@@ -34,6 +35,13 @@ public sealed partial class UsersManagementViewModel : ObservableObject
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(AssignRoleCommand))]
     private string selectedRoleForAssign = "Staff";
+
+    [ObservableProperty]
+    private ObservableCollection<JobGradeOption> assignableJobGrades = new();
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(AssignJobGradeCommand))]
+    private JobGradeOption? selectedJobGradeForAssign;
 
     [ObservableProperty]
     private ObservableCollection<PendingUserRow> pendingUsers = new();
@@ -72,6 +80,7 @@ public sealed partial class UsersManagementViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(DisableSelectedUserCommand))]
     [NotifyCanExecuteChangedFor(nameof(ActivateSelectedUserCommand))]
     [NotifyCanExecuteChangedFor(nameof(AssignRoleCommand))]
+    [NotifyCanExecuteChangedFor(nameof(AssignJobGradeCommand))]
     [NotifyCanExecuteChangedFor(nameof(ApprovePendingUserCommand))]
     [NotifyCanExecuteChangedFor(nameof(OpenRejectDialogCommand))]
     [NotifyCanExecuteChangedFor(nameof(ConfirmRejectCommand))]
@@ -96,6 +105,9 @@ public sealed partial class UsersManagementViewModel : ObservableObject
         };
         SelectedPendingStatus = PendingStatusFilters.FirstOrDefault();
 
+        AssignableJobGrades = new ObservableCollection<JobGradeOption>(BuildJobGradeOptions());
+        SelectedJobGradeForAssign = AssignableJobGrades.FirstOrDefault();
+
         _ = RefreshAsync();
     }
 
@@ -103,17 +115,29 @@ public sealed partial class UsersManagementViewModel : ObservableObject
 
     partial void OnSelectedUserChanged(UserRow? value)
     {
-        if (value is null || AssignableRoles.Count == 0)
+        if (value is null)
         {
             return;
         }
 
-        var preferredRole = AssignableRoles.FirstOrDefault(role =>
-            value.Roles.Any(x => string.Equals(x, role, StringComparison.OrdinalIgnoreCase)));
-
-        if (!string.IsNullOrWhiteSpace(preferredRole))
+        if (AssignableRoles.Count > 0)
         {
-            SelectedRoleForAssign = preferredRole;
+            var preferredRole = AssignableRoles.FirstOrDefault(role =>
+                value.Roles.Any(x => string.Equals(x, role, StringComparison.OrdinalIgnoreCase)));
+
+            if (!string.IsNullOrWhiteSpace(preferredRole))
+            {
+                SelectedRoleForAssign = preferredRole;
+            }
+        }
+
+        if (AssignableJobGrades.Count > 0)
+        {
+            var preferredGrade = AssignableJobGrades.FirstOrDefault(x => x.Grade == value.JobGrade);
+            if (preferredGrade is not null)
+            {
+                SelectedJobGradeForAssign = preferredGrade;
+            }
         }
     }
 
@@ -149,6 +173,16 @@ public sealed partial class UsersManagementViewModel : ObservableObject
 
         return SelectedUser.Roles.Count != 1 ||
                !string.Equals(SelectedUser.Roles[0], SelectedRoleForAssign, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool CanAssignJobGrade()
+    {
+        if (IsBusy || SelectedUser is null || SelectedJobGradeForAssign is null)
+        {
+            return false;
+        }
+
+        return SelectedUser.JobGrade != SelectedJobGradeForAssign.Grade;
     }
 
     private bool CanApprovePendingUser(PendingUserRow? row)
@@ -193,6 +227,16 @@ public sealed partial class UsersManagementViewModel : ObservableObject
             else if (!AssignableRoles.Any(x => string.Equals(x, SelectedRoleForAssign, StringComparison.OrdinalIgnoreCase)))
             {
                 SelectedRoleForAssign = AssignableRoles[0];
+            }
+
+            if (SelectedUser is not null)
+            {
+                var preferredGrade = AssignableJobGrades.FirstOrDefault(x => x.Grade == SelectedUser.JobGrade);
+                SelectedJobGradeForAssign = preferredGrade ?? AssignableJobGrades.FirstOrDefault();
+            }
+            else if (SelectedJobGradeForAssign is null)
+            {
+                SelectedJobGradeForAssign = AssignableJobGrades.FirstOrDefault();
             }
 
             await LoadPendingUsersAsync();
@@ -302,6 +346,33 @@ public sealed partial class UsersManagementViewModel : ObservableObject
             await _userService.AssignRoleAsync(SelectedUser.Id, SelectedRoleForAssign);
             await RefreshAsync();
             StatusMessage = "역할을 부여했습니다.";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = ex.Message;
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(CanAssignJobGrade))]
+    private async Task AssignJobGradeAsync()
+    {
+        if (SelectedUser is null || SelectedJobGradeForAssign is null)
+        {
+            return;
+        }
+
+        try
+        {
+            IsBusy = true;
+            StatusMessage = null;
+
+            await _userService.AssignJobGradeAsync(SelectedUser.Id, SelectedJobGradeForAssign.Grade);
+            await RefreshAsync();
+            StatusMessage = $"직급을 '{SelectedJobGradeForAssign.DisplayName}'(으)로 변경했습니다.";
         }
         catch (Exception ex)
         {
@@ -485,6 +556,7 @@ public sealed partial class UsersManagementViewModel : ObservableObject
             dto.IsActive,
             dto.FailedLoginCount,
             dto.LockoutEndUtc,
+            dto.JobGrade,
             dto.Roles.ToList());
     }
 
@@ -505,9 +577,11 @@ public sealed partial class UsersManagementViewModel : ObservableObject
         bool IsActive,
         int FailedLoginCount,
         DateTime? LockoutEndUtc,
+        UserJobGrade JobGrade,
         IReadOnlyList<string> Roles)
     {
         public string StatusDisplay => Status.ToString();
+        public string JobGradeDisplay => UsersManagementViewModel.ToJobGradeDisplayName(JobGrade);
         public string RolesDisplay => string.Join(", ", Roles);
     }
 
@@ -522,4 +596,32 @@ public sealed partial class UsersManagementViewModel : ObservableObject
     }
 
     public sealed record PendingStatusFilterOption(UserStatus Status, string DisplayName);
+    public sealed record JobGradeOption(UserJobGrade Grade, string DisplayName);
+
+    private static IReadOnlyList<JobGradeOption> BuildJobGradeOptions()
+    {
+        return
+        [
+            new JobGradeOption(UserJobGrade.Staff, "사원"),
+            new JobGradeOption(UserJobGrade.AssistantManager, "대리"),
+            new JobGradeOption(UserJobGrade.Manager, "과장"),
+            new JobGradeOption(UserJobGrade.DeputyGeneralManager, "차장"),
+            new JobGradeOption(UserJobGrade.GeneralManager, "부장"),
+            new JobGradeOption(UserJobGrade.President, "사장")
+        ];
+    }
+
+    private static string ToJobGradeDisplayName(UserJobGrade jobGrade)
+    {
+        return jobGrade switch
+        {
+            UserJobGrade.Staff => "사원",
+            UserJobGrade.AssistantManager => "대리",
+            UserJobGrade.Manager => "과장",
+            UserJobGrade.DeputyGeneralManager => "차장",
+            UserJobGrade.GeneralManager => "부장",
+            UserJobGrade.President => "사장",
+            _ => "사원"
+        };
+    }
 }

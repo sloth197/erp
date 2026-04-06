@@ -65,6 +65,18 @@
                 <views:StockIssueView />
             </DataTemplate>
 
+            <DataTemplate DataType="{x:Type vms:PurchaseOrdersViewModel}">
+                <views:PurchaseOrdersView />
+            </DataTemplate>
+
+            <DataTemplate DataType="{x:Type vms:SalesOrdersViewModel}">
+                <views:SalesOrdersView />
+            </DataTemplate>
+
+            <DataTemplate DataType="{x:Type vms:SalesRevenueViewModel}">
+                <views:SalesRevenueView />
+            </DataTemplate>
+
             <DataTemplate DataType="{x:Type vms:PlaceholderPageViewModel}">
                 <views:PlaceholderView />
             </DataTemplate>

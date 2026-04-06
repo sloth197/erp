@@ -19,6 +19,10 @@
                 BorderThickness="1"
                 CornerRadius="6">
             <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="1.8*" />
                     <ColumnDefinition Width="1.6*" />
@@ -67,6 +71,52 @@
                         Margin="0,18,0,0"
                         VerticalAlignment="Top"
                         Command="{Binding LoadCommand}" />
+
+                <Border Grid.Row="1"
+                        Grid.ColumnSpan="6"
+                        Margin="0,12,0,0"
+                        Padding="10"
+                        BorderBrush="#E4E7EC"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Background="#F8FAFC">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="관리 기능"
+                                   VerticalAlignment="Center"
+                                   FontWeight="SemiBold"
+                                   Margin="0,0,10,0" />
+
+                        <Button Content="입고 등록"
+                                Width="86"
+                                Command="{Binding OpenStockReceiptCommand}" />
+                        <Button Content="출고 등록"
+                                Width="86"
+                                Margin="6,0,0,0"
+                                Command="{Binding OpenStockIssueCommand}" />
+
+                        <TextBlock Text="실사수량"
+                                   VerticalAlignment="Center"
+                                   Margin="14,0,6,0" />
+                        <TextBox Width="100"
+                                 Text="{Binding CountedQtyInput, UpdateSourceTrigger=PropertyChanged}" />
+
+                        <TextBlock Text="비고"
+                                   VerticalAlignment="Center"
+                                   Margin="10,0,6,0" />
+                        <TextBox Width="220"
+                                 Text="{Binding AdjustNote, UpdateSourceTrigger=PropertyChanged}" />
+
+                        <Button Content="실사 조정 반영"
+                                Margin="10,0,0,0"
+                                Width="110"
+                                Command="{Binding ApplyCountAdjustmentCommand}" />
+
+                        <TextBlock Margin="12,0,0,0"
+                                   VerticalAlignment="Center"
+                                   Foreground="#667085"
+                                   Text="{Binding SelectedRowSummary}" />
+                    </StackPanel>
+                </Border>
             </Grid>
         </Border>
 
@@ -119,6 +169,7 @@
 
             <Grid Grid.Row="1">
                 <DataGrid ItemsSource="{Binding Rows}"
+                          SelectedItem="{Binding SelectedRow}"
                           AutoGenerateColumns="False"
                           IsReadOnly="True"
                           EnableRowVirtualization="True"

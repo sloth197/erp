@@ -43,6 +43,15 @@ public static class DependencyInjection
         services.AddSingleton<IItemQueryService, SearchItemsQueryHandler>();
         services.AddSingleton<IInventoryCommandService, InventoryCommandService>();
         services.AddSingleton<IInventoryQueryService, SearchStockOnHandQueryHandler>();
+        services.AddSingleton<PurchaseOrderService>();
+        services.AddSingleton<IPurchaseOrderQueryService>(sp => sp.GetRequiredService<PurchaseOrderService>());
+        services.AddSingleton<IPurchaseOrderCommandService>(sp => sp.GetRequiredService<PurchaseOrderService>());
+        services.AddSingleton<SalesOrderService>();
+        services.AddSingleton<ISalesOrderQueryService>(sp => sp.GetRequiredService<SalesOrderService>());
+        services.AddSingleton<ISalesOrderCommandService>(sp => sp.GetRequiredService<SalesOrderService>());
+        services.AddSingleton<SalesShipmentService>();
+        services.AddSingleton<ISalesShipmentQueryService>(sp => sp.GetRequiredService<SalesShipmentService>());
+        services.AddSingleton<ISalesShipmentCommandService>(sp => sp.GetRequiredService<SalesShipmentService>());
         services.AddSingleton<IAuditLogQueryService, AuditLogQueryService>();
         services.AddSingleton<IHomeDashboardQueryService, HomeDashboardQueryService>();
 

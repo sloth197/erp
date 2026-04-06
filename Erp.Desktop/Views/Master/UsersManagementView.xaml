@@ -24,12 +24,20 @@
                     </Grid.RowDefinitions>
 
                     <WrapPanel Margin="0,0,0,8">
-                        <TextBlock Text="선택 사용자 역할 부여 (Staff/Admin):" VerticalAlignment="Center" />
+                        <TextBlock Text="선택 사용자 역할/직급 지정:" VerticalAlignment="Center" />
                         <ComboBox Width="150"
                                   Margin="8,0,0,0"
                                   ItemsSource="{Binding AssignableRoles}"
                                   SelectedItem="{Binding SelectedRoleForAssign}" />
                         <Button Content="역할 부여" Margin="8,0,0,0" Command="{Binding AssignRoleCommand}" />
+
+                        <ComboBox Width="120"
+                                  Margin="8,0,0,0"
+                                  ItemsSource="{Binding AssignableJobGrades}"
+                                  DisplayMemberPath="DisplayName"
+                                  SelectedItem="{Binding SelectedJobGradeForAssign}" />
+                        <Button Content="직급 지정" Margin="8,0,0,0" Command="{Binding AssignJobGradeCommand}" />
+
                         <Button Content="활성화" Margin="8,0,0,0" Command="{Binding ActivateSelectedUserCommand}" />
                         <Button Content="비활성" Margin="8,0,0,0" Command="{Binding DisableSelectedUserCommand}" />
                         <Button Content="새로고침" Margin="8,0,0,0" Command="{Binding RefreshCommand}" />
@@ -43,10 +51,11 @@
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Username" Binding="{Binding Username}" Width="*" />
                             <DataGridTextColumn Header="Status" Binding="{Binding StatusDisplay}" Width="90" />
+                            <DataGridTextColumn Header="직급" Binding="{Binding JobGradeDisplay}" Width="90" />
                             <DataGridCheckBoxColumn Header="IsActive" Binding="{Binding IsActive}" Width="90" />
                             <DataGridTextColumn Header="Failed" Binding="{Binding FailedLoginCount}" Width="70" />
                             <DataGridTextColumn Header="LockoutEndUtc" Binding="{Binding LockoutEndUtc}" Width="170" />
-                            <DataGridTextColumn Header="Roles" Binding="{Binding RolesDisplay}" Width="220" />
+                            <DataGridTextColumn Header="Roles" Binding="{Binding RolesDisplay}" Width="180" />
                         </DataGrid.Columns>
                     </DataGrid>
                 </Grid>

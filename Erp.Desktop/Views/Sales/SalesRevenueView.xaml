@@ -1,0 +1,237 @@
+<UserControl x:Class="Erp.Desktop.Views.SalesRevenueView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:Erp.Desktop.Controls">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel>
+            <TextBlock Text="{Binding Title}" FontSize="22" FontWeight="SemiBold" />
+            <TextBlock Margin="0,6,0,0"
+                       Foreground="#667085"
+                       Text="{Binding Description}" />
+        </StackPanel>
+
+        <Border Grid.Row="1"
+                Margin="0,12,0,10"
+                Padding="12"
+                BorderBrush="#D0D7E2"
+                BorderThickness="1"
+                CornerRadius="6">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.2*" />
+                    <ColumnDefinition Width="1.2*" />
+                    <ColumnDefinition Width="1.2*" />
+                    <ColumnDefinition Width="1.2*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                    <TextBlock Text="출고 창고" Margin="0,0,0,4" />
+                    <ComboBox ItemsSource="{Binding WarehouseOptions}"
+                              SelectedItem="{Binding SelectedWarehouse}"
+                              DisplayMemberPath="Name" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Margin="0,0,10,0">
+                    <TextBlock Text="배송유형" Margin="0,0,0,4" />
+                    <ComboBox ItemsSource="{Binding ShippingTypeOptions}"
+                              SelectedItem="{Binding SelectedShippingType}"
+                              DisplayMemberPath="Name" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Margin="0,0,10,0">
+                    <TextBlock Text="출고일" Margin="0,0,0,4" />
+                    <DatePicker SelectedDate="{Binding ShipmentDateFilter}" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="3" Margin="0,0,10,0">
+                    <TextBlock Text="진행상태" Margin="0,0,0,4" />
+                    <ComboBox ItemsSource="{Binding ProgressOptions}"
+                              SelectedItem="{Binding SelectedProgress}"
+                              DisplayMemberPath="Name" />
+                </StackPanel>
+
+                <Button Grid.Column="4"
+                        Width="84"
+                        Margin="0,18,8,0"
+                        VerticalAlignment="Top"
+                        Content="조회"
+                        Command="{Binding SearchCommand}" />
+
+                <Button Grid.Column="5"
+                        Width="108"
+                        Margin="0,18,0,0"
+                        VerticalAlignment="Top"
+                        Content="출고 생성"
+                        Command="{Binding CreateShipmentCommand}" />
+            </Grid>
+        </Border>
+
+        <UniformGrid Grid.Row="2"
+                     Margin="0,0,0,10"
+                     Columns="4">
+            <Border Margin="0,0,8,0"
+                    Padding="10"
+                    BorderBrush="#D0D7E2"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Background="#F8FAFC">
+                <StackPanel>
+                    <TextBlock Foreground="#475467" Text="오늘 출고" />
+                    <TextBlock Margin="0,4,0,0"
+                               FontSize="20"
+                               FontWeight="SemiBold"
+                               Text="{Binding TodayShipmentCount, StringFormat={}{0:N0}건}" />
+                </StackPanel>
+            </Border>
+
+            <Border Margin="0,0,8,0"
+                    Padding="10"
+                    BorderBrush="#D0D7E2"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Background="#F8FAFC">
+                <StackPanel>
+                    <TextBlock Foreground="#475467" Text="피킹 대기" />
+                    <TextBlock Margin="0,4,0,0"
+                               FontSize="20"
+                               FontWeight="SemiBold"
+                               Text="{Binding PickingWaitingCount, StringFormat={}{0:N0}건}" />
+                </StackPanel>
+            </Border>
+
+            <Border Margin="0,0,8,0"
+                    Padding="10"
+                    BorderBrush="#D0D7E2"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Background="#F8FAFC">
+                <StackPanel>
+                    <TextBlock Foreground="#475467" Text="포장 완료" />
+                    <TextBlock Margin="0,4,0,0"
+                               FontSize="20"
+                               FontWeight="SemiBold"
+                               Text="{Binding PackedCount, StringFormat={}{0:N0}건}" />
+                </StackPanel>
+            </Border>
+
+            <Border Padding="10"
+                    BorderBrush="#D0D7E2"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Background="#F8FAFC">
+                <StackPanel>
+                    <TextBlock Foreground="#475467" Text="운송장 미등록" />
+                    <TextBlock Margin="0,4,0,0"
+                               FontSize="20"
+                               FontWeight="SemiBold"
+                               Text="{Binding MissingTrackingCount, StringFormat={}{0:N0}건}" />
+                </StackPanel>
+            </Border>
+        </UniformGrid>
+
+        <Grid Grid.Row="3">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*" />
+                <ColumnDefinition Width="1.1*" />
+            </Grid.ColumnDefinitions>
+
+            <DataGrid Grid.Column="0"
+                      ItemsSource="{Binding Rows}"
+                      SelectedItem="{Binding SelectedRow}"
+                      AutoGenerateColumns="False"
+                      CanUserAddRows="False"
+                      IsReadOnly="True"
+                      Margin="0,0,10,0">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="출고번호" Binding="{Binding ShipmentNumber}" Width="120" />
+                    <DataGridTextColumn Header="주문번호" Binding="{Binding SalesOrderNumber}" Width="120" />
+                    <DataGridTextColumn Header="고객사" Binding="{Binding CustomerName}" Width="1.5*" />
+                    <DataGridTextColumn Header="출고일" Binding="{Binding ShipmentDate, StringFormat=yyyy-MM-dd}" Width="120" />
+                    <DataGridTextColumn Header="운송사" Binding="{Binding Carrier}" Width="100" />
+                    <DataGridTextColumn Header="운송장번호" Binding="{Binding TrackingNumber}" Width="140" />
+                    <DataGridTextColumn Header="상태" Binding="{Binding Status}" Width="100" />
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <Border Grid.Column="1"
+                    Padding="12"
+                    BorderBrush="#D0D7E2"
+                    BorderThickness="1"
+                    CornerRadius="6">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock FontSize="16" FontWeight="SemiBold" Text="출고 작업 패널" />
+                    <TextBlock Grid.Row="1"
+                               Margin="0,6,0,10"
+                               Foreground="#667085"
+                               Text="선택한 주문에 대해 피킹/포장/송장 등록을 진행하는 영역" />
+
+                    <StackPanel Grid.Row="2">
+                        <CheckBox Margin="0,0,0,8"
+                                  Content="피킹 완료 확인"
+                                  IsChecked="{Binding IsPickingCompleted}" />
+                        <CheckBox Margin="0,0,0,8"
+                                  Content="포장 완료 확인"
+                                  IsChecked="{Binding IsPackingCompleted}" />
+                        <CheckBox Margin="0,0,0,12"
+                                  Content="송장 등록 확인"
+                                  IsChecked="{Binding IsTrackingCompleted}" />
+
+                        <TextBlock Margin="0,0,0,4" Text="작업 메모" />
+                        <TextBox Height="96"
+                                 Text="{Binding WorkNote, UpdateSourceTrigger=PropertyChanged}"
+                                 TextWrapping="Wrap"
+                                 AcceptsReturn="True"
+                                 VerticalScrollBarVisibility="Auto" />
+
+                        <Button Margin="0,12,0,0"
+                                Content="출고 확정"
+                                Command="{Binding ConfirmShipmentCommand}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <DockPanel Grid.Row="4" Margin="0,10,0,0">
+            <TextBlock DockPanel.Dock="Left"
+                       VerticalAlignment="Center"
+                       Foreground="#667085"
+                       Text="레이아웃 시안: 출고 목록 + 작업 패널 동시 구성" />
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button Width="110"
+                        Content="송장 일괄등록"
+                        Command="{Binding RegisterBulkTrackingCommand}" />
+                <Button Width="108"
+                        Margin="8,0,0,0"
+                        Content="출고 마감"
+                        Command="{Binding CloseShipmentDayCommand}" />
+            </StackPanel>
+        </DockPanel>
+
+        <controls:MessageBar Grid.Row="5"
+                             Margin="0,10,0,0"
+                             Message="{Binding UserMessage.Text}"
+                             Kind="{Binding UserMessage.Kind}"
+                             IsOpen="{Binding HasUserMessage}" />
+
+        <controls:BusyOverlay Grid.RowSpan="6"
+                              IsBusy="{Binding IsBusy}"
+                              Message="{Binding BusyMessage}" />
+    </Grid>
+</UserControl>

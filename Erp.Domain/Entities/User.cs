@@ -11,6 +11,7 @@ public sealed class User
     public string? Name { get; private set; }
     public string? PhoneNumber { get; private set; }
     public string? Company { get; private set; }
+    public UserJobGrade JobGrade { get; private set; } = UserJobGrade.Staff;
     public UserStatus Status { get; private set; } = UserStatus.Pending;
     public bool IsActive { get; private set; }
     public int FailedLoginCount { get; private set; }
@@ -39,7 +40,8 @@ public sealed class User
         string? email = null,
         string? name = null,
         string? phoneNumber = null,
-        string? company = null)
+        string? company = null,
+        UserJobGrade jobGrade = UserJobGrade.Staff)
     {
         if (string.IsNullOrWhiteSpace(username))
         {
@@ -58,6 +60,7 @@ public sealed class User
         Name = NormalizeOptional(name);
         PhoneNumber = NormalizeOptional(phoneNumber);
         Company = NormalizeOptional(company);
+        JobGrade = jobGrade;
 
         Status = UserStatus.Pending;
         IsActive = false;
@@ -126,6 +129,11 @@ public sealed class User
         Name = NormalizeOptional(name);
         PhoneNumber = NormalizeOptional(phoneNumber);
         Company = NormalizeOptional(company);
+    }
+
+    public void SetJobGrade(UserJobGrade jobGrade)
+    {
+        JobGrade = jobGrade;
     }
 
     public void Approve(Guid? approvedByUserId = null, DateTime? approvedAtUtc = null)

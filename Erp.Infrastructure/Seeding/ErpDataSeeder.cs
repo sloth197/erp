@@ -48,6 +48,7 @@ public sealed class ErpDataSeeder : IDataSeeder
         var staffPermissions = new[]
         {
             PermissionCodes.NoticeRead,
+            PermissionCodes.SystemSettingsRead,
             PermissionCodes.MasterItemsRead,
             PermissionCodes.MasterItemsExport,
             PermissionCodes.MasterPartnersRead,
@@ -67,8 +68,8 @@ public sealed class ErpDataSeeder : IDataSeeder
         var adminPassword = ResolveSeedSecret("Seed:AdminPassword", "ERP_SEED_ADMIN_PASSWORD");
         var staffPassword = ResolveSeedSecret("Seed:StaffPassword", "ERP_SEED_STAFF_PASSWORD");
 
-        await EnsureUserAsync(db, adminUsername, adminPassword, adminRole, cancellationToken);
-        await EnsureUserAsync(db, staffUsername, staffPassword, staffRole, cancellationToken);
+        await EnsureUserAsync(db, adminUsername, adminPassword, adminRole, UserJobGrade.President, cancellationToken);
+        await EnsureUserAsync(db, staffUsername, staffPassword, staffRole, UserJobGrade.Staff, cancellationToken);
         await EnsureWarehouseSeedsAsync(db, cancellationToken);
         await EnsureRandomInventorySeedsAsync(db, cancellationToken);
 
@@ -127,6 +128,7 @@ public sealed class ErpDataSeeder : IDataSeeder
         string username,
         string? initialPassword,
         Role role,
+        UserJobGrade jobGrade,
         CancellationToken cancellationToken)
     {
         var user = await db.Users.FirstOrDefaultAsync(x => x.Username == username, cancellationToken);
@@ -137,9 +139,13 @@ public sealed class ErpDataSeeder : IDataSeeder
                 return;
             }
 
-            user = new User(username, _passwordHasher.Hash(initialPassword));
+            user = new User(username, _passwordHasher.Hash(initialPassword), jobGrade: jobGrade);
             db.Users.Add(user);
             await db.SaveChangesAsync(cancellationToken);
+        }
+        else if (user.JobGrade != jobGrade)
+        {
+            user.SetJobGrade(jobGrade);
         }
 
         if (user.Status != UserStatus.Active || !user.IsActive)

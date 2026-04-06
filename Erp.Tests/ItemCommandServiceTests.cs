@@ -260,6 +260,7 @@ public sealed class ItemCommandServiceTests
         public string? Name { get; } = "Tester";
         public string? Company { get; } = "ERP";
         public string? PhoneNumber { get; } = "010-0000-0000";
+        public UserJobGrade? JobGrade { get; } = UserJobGrade.Staff;
         public bool IsAuthenticated => CurrentUserId.HasValue;
         public IReadOnlyCollection<string> PermissionCodes => _permissions;
 

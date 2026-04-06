@@ -673,6 +673,14 @@ namespace Erp.Infrastructure.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_active");
 
+                    b.Property<string>("JobGrade")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasDefaultValue("Staff")
+                        .HasColumnName("job_grade");
+
                     b.Property<DateTime?>("LockoutEndUtc")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("lockout_end_utc");
