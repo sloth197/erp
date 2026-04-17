@@ -146,7 +146,7 @@ public sealed class EmailVerificationService : IEmailVerificationService
       <td align="center">
         <table role="presentation" width="640" cellpadding="0" cellspacing="0" style="width:640px;max-width:640px;background:#ffffff;border:1px solid #d1d5db;font-family:'Malgun Gothic',sans-serif;color:#1f2937;">
           <tr>
-            <td style="padding:24px 28px 8px 28px;font-size:32px;line-height:1.4;">안녕하세요. ERP 이메일 인증번호 테스트 중입니다.</td>
+            <td style="padding:24px 28px 8px 28px;font-size:32px;line-height:1.4;">안녕하세요. C# 기반 ERP 프로그램입니다.</td>
           </tr>
           <tr>
             <td style="padding:8px 28px 20px 28px;font-size:26px;line-height:1.6;">
@@ -177,6 +177,9 @@ public sealed class EmailVerificationService : IEmailVerificationService
           </tr>
           <tr>
           </tr>
+           <td style="padding:0 28px 12px 28px;font-size:20px;line-height:1.6;color:#4b5563;">
+              ** 본 메일은 발신 전용이므로 회신하더라도 전달되지 않습니다.
+            </td>
         </table>
       </td>
     </tr>
@@ -205,7 +208,7 @@ public sealed class EmailVerificationService : IEmailVerificationService
         var code = request.Code?.Trim() ?? string.Empty;
         if (!IsValidCodeFormat(code))
         {
-            return VerifyEmailVerificationCodeResult.Failed("인증번호 형식이 올바르지 않습니다.");
+            return VerifyEmailVerificationCodeResult.Failed("인증번호 확인 후 다시 입력하세요.");
         }
 
         await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
@@ -261,7 +264,7 @@ public sealed class EmailVerificationService : IEmailVerificationService
                 ip: null));
             await db.SaveChangesAsync(cancellationToken);
 
-            return VerifyEmailVerificationCodeResult.Failed("인증번호가 올바르지 않습니다.", remaining);
+            return VerifyEmailVerificationCodeResult.Failed("인증번호 확인 후 다시 입력하세요.", remaining);
         }
 
         entity.MarkVerified(now);

@@ -127,9 +127,18 @@
                                 BorderBrush="#D3DCE8"
                                 BorderThickness="1"
                                 CornerRadius="6"
-                                Padding="10">
-                            <Grid>
-                                <Canvas Width="300" Height="120" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                Padding="10"
+                                ClipToBounds="True">
+                            <Viewbox Stretch="Uniform"
+                                     StretchDirection="DownOnly"
+                                     HorizontalAlignment="Stretch"
+                                     VerticalAlignment="Center"
+                                     ClipToBounds="True">
+                                <Canvas Width="300"
+                                        Height="120"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        ClipToBounds="True">
                                     <Line X1="0" Y1="110" X2="300" Y2="110" Stroke="#D6DFEB" StrokeThickness="1" />
                                     <Line X1="0" Y1="70" X2="300" Y2="70" Stroke="#E6EDF6" StrokeThickness="1" />
                                     <Line X1="0" Y1="30" X2="300" Y2="30" Stroke="#E6EDF6" StrokeThickness="1" />
@@ -137,10 +146,10 @@
                                               Stroke="#1D4ED8"
                                               StrokeThickness="2.5"
                                               StrokeLineJoin="Round"
-                                              StrokeStartLineCap="Round"
-                                              StrokeEndLineCap="Round" />
+                                              StrokeStartLineCap="Flat"
+                                              StrokeEndLineCap="Flat" />
                                 </Canvas>
-                            </Grid>
+                            </Viewbox>
                         </Border>
 
                         <Grid Grid.Row="2">

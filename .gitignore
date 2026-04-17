@@ -17,6 +17,7 @@ obj/
 .env
 .env.*
 !.env.example
+artifacts/
 
 # Local-only security implementation (kept in VSCode, excluded from GitHub)
 Erp.Infrastructure/Services/AuthService.cs
