@@ -48,10 +48,17 @@ public sealed class EmailVerificationService : IEmailVerificationService
         var purpose = NormalizePurpose(request.Purpose);
         var now = DateTime.UtcNow;
         var expiresAtUtc = now.AddMinutes(_options.ExpiresInMinutes);
-        var code = GenerateCode(_options.CodeLength);
-        var codeHash = ComputeCodeHash(email, purpose, code);
 
         await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        var cooldownResult = await CheckSendCooldownAsync(db, email, purpose, now, cancellationToken);
+        if (cooldownResult is not null)
+        {
+            return cooldownResult;
+        }
+
+        var code = GenerateCode(_options.CodeLength);
+        var codeHash = ComputeCodeHash(email, purpose, code);
 
         var activeCodes = await db.EmailVerificationCodes
             .Where(x =>
@@ -132,58 +139,74 @@ public sealed class EmailVerificationService : IEmailVerificationService
         }
     }
 
+    private async Task<SendEmailVerificationCodeResult?> CheckSendCooldownAsync(
+        ErpDbContext db,
+        string email,
+        string purpose,
+        DateTime now,
+        CancellationToken cancellationToken)
+    {
+        var cooldownStartUtc = now.AddMinutes(-_options.SendCooldownMinutes);
+        var recentIssuedAtUtc = await db.EmailVerificationCodes
+            .AsNoTracking()
+            .Where(x =>
+                x.Email == email &&
+                x.Purpose == purpose &&
+                x.CreatedAtUtc >= cooldownStartUtc)
+            .OrderBy(x => x.CreatedAtUtc)
+            .Select(x => x.CreatedAtUtc)
+            .Take(_options.MaxSendCountBeforeCooldown)
+            .ToListAsync(cancellationToken);
+
+        if (recentIssuedAtUtc.Count < _options.MaxSendCountBeforeCooldown)
+        {
+            return null;
+        }
+
+        var retryAtUtc = recentIssuedAtUtc[^1].AddMinutes(_options.SendCooldownMinutes);
+        var remaining = retryAtUtc - now;
+        var remainingMinutes = Math.Max(1, (int)Math.Ceiling(remaining.TotalMinutes));
+
+        db.AuditLogs.Add(new AuditLog(
+            actorUserId: null,
+            action: "EmailVerification.SendCooldown",
+            target: email,
+            detailJson: SerializeDetail(new
+            {
+                purpose,
+                maxSendCount = _options.MaxSendCountBeforeCooldown,
+                cooldownMinutes = _options.SendCooldownMinutes,
+                retryAtUtc
+            }),
+            ip: null));
+
+        await db.SaveChangesAsync(cancellationToken);
+
+        return SendEmailVerificationCodeResult.Failed(
+            $"인증번호는 {_options.MaxSendCountBeforeCooldown}회까지 연속 발송할 수 있습니다. 약 {remainingMinutes}분 후 다시 요청해 주세요.");
+    }
+
     private static string BuildSignUpVerificationHtml(string code, DateTime requestAtLocal, int expiresInMinutes)
     {
         var safeCode = WebUtility.HtmlEncode(code);
-        var requestAtText = requestAtLocal.ToString("yyyy-MM-dd HH:mm:ss");
+        var requestAtText = requestAtLocal.ToString("yyyy-MM-dd HH:mm");
 
         return $"""
 <!doctype html>
 <html lang="ko">
-<body style="margin:0;padding:0;background:#f3f4f6;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="padding:24px 0;background:#f3f4f6;">
-    <tr>
-      <td align="center">
-        <table role="presentation" width="640" cellpadding="0" cellspacing="0" style="width:640px;max-width:640px;background:#ffffff;border:1px solid #d1d5db;font-family:'Malgun Gothic',sans-serif;color:#1f2937;">
-          <tr>
-            <td style="padding:24px 28px 8px 28px;font-size:32px;line-height:1.4;">안녕하세요. C# 기반 ERP 프로그램입니다.</td>
-          </tr>
-          <tr>
-            <td style="padding:8px 28px 20px 28px;font-size:26px;line-height:1.6;">
-              회원가입을 위해 이메일 인증이 필요합니다.<br/>
-              아래 인증번호를 확인하신 후 인증 절차를 완료해 주세요.
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:0 28px 12px 28px;font-size:20px;line-height:1.6;color:#4b5563;">
-              인증 코드는 이메일 발송 시점으로부터 {expiresInMinutes}분 동안 유효합니다.
-            </td>
-          </tr>
-          <tr>
-          </tr>
-          <tr>
-            <td style="padding:0 28px 24px 28px;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #9ca3af;font-size:24px;">
-                <tr>
-                  <td style="padding:12px;border:1px solid #9ca3af;background:#f9fafb;font-weight:700;text-align:center;">인증 번호</td>
-                  <td style="padding:12px;border:1px solid #9ca3af;font-size:30px;font-weight:800;color:#111827;letter-spacing:1px;">{safeCode}</td>
-                </tr>
-                <tr>
-                  <td style="padding:12px;border:1px solid #9ca3af;background:#f9fafb;font-weight:700;text-align:center;">요청 일시</td>
-                  <td style="padding:12px;border:1px solid #9ca3af;">{requestAtText}</td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-          <tr>
-          </tr>
-           <td style="padding:0 28px 12px 28px;font-size:20px;line-height:1.6;color:#4b5563;">
-              ** 본 메일은 발신 전용이므로 회신하더라도 전달되지 않습니다.
-            </td>
-        </table>
-      </td>
-    </tr>
-  </table>
+<body>
+  <div style="font-family:'Malgun Gothic',Arial,sans-serif;font-size:15px;line-height:1.7;color:#111827;">
+    <p style="margin:0 0 15px 0;">안녕하세요. C# 기반 ERP 프로그램입니다.</p>
+    <p style="margin:0 0 15px 0;">
+      회원가입을 위해 이메일 인증이 필요합니다.<br/>
+      아래 인증번호를 확인하신 후 인증 절차를 완료해 주세요.
+    </p>
+    <p style="margin:0 0 15px 0;">인증 코드는 이메일 발송 시점으로부터 {expiresInMinutes}분 동안 유효합니다.</p>
+    <p style="margin:0 0 15px 0;font-size:20px;font-weight:700;">
+      인증번호: {safeCode}<br/>
+      요청 일시: {requestAtText}
+    </p>
+  </div>
 </body>
 </html>
 """;

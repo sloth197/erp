@@ -97,18 +97,24 @@ public static class DependencyInjection
         var codeLengthRaw = ResolveValue(section["CodeLength"]);
         var expiresInMinutesRaw = ResolveValue(section["ExpiresInMinutes"]);
         var maxAttemptCountRaw = ResolveValue(section["MaxAttemptCount"]);
+        var maxSendCountBeforeCooldownRaw = ResolveValue(section["MaxSendCountBeforeCooldown"]);
+        var sendCooldownMinutesRaw = ResolveValue(section["SendCooldownMinutes"]);
         var defaultPurpose = ResolveValue(section["DefaultPurpose"]);
         var subject = ResolveValue(section["Subject"]);
 
         var codeLength = ParseIntOrDefault(codeLengthRaw, 8);
         var expiresInMinutes = ParseIntOrDefault(expiresInMinutesRaw, 3);
         var maxAttemptCount = ParseIntOrDefault(maxAttemptCountRaw, 5);
+        var maxSendCountBeforeCooldown = ParseIntOrDefault(maxSendCountBeforeCooldownRaw, 3);
+        var sendCooldownMinutes = ParseIntOrDefault(sendCooldownMinutesRaw, 5);
 
         return new EmailVerificationOptions
         {
             CodeLength = Math.Clamp(codeLength, 8, 8),
             ExpiresInMinutes = Math.Clamp(expiresInMinutes, 1, 60),
             MaxAttemptCount = Math.Clamp(maxAttemptCount, 1, 10),
+            MaxSendCountBeforeCooldown = Math.Clamp(maxSendCountBeforeCooldown, 1, 10),
+            SendCooldownMinutes = Math.Clamp(sendCooldownMinutes, 1, 60),
             DefaultPurpose = string.IsNullOrWhiteSpace(defaultPurpose) ? "signup" : defaultPurpose.Trim().ToLowerInvariant(),
             Subject = string.IsNullOrWhiteSpace(subject) ? "[ERP] Verification Code" : subject.Trim()
         };
