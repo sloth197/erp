@@ -10,9 +10,17 @@ LoadDotEnvIfExists();
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddProblemDetails();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 builder.Services.AddInfrastructure(builder.Configuration);
 
 var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
 app.UseExceptionHandler();
 
@@ -20,16 +28,23 @@ app.MapGet("/", () => Results.Ok(new
 {
     name = "Erp.AuthApi",
     status = "running"
-}));
+}))
+    .WithName("GetAuthApiStatus")
+    .WithTags("System");
 
 app.MapGet("/health", () => Results.Ok(new
 {
     status = "healthy",
     utcNow = DateTime.UtcNow
-}));
+}))
+    .WithName("GetHealth")
+    .WithTags("System");
 
-var authGroup = app.MapGroup("/auth");
-var emailGroup = authGroup.MapGroup("/email");
+var authGroup = app.MapGroup("/auth")
+    .WithTags("Authentication");
+
+var emailGroup = authGroup.MapGroup("/email")
+    .WithTags("Email Verification");
 
 emailGroup.MapPost("/send-code", async (
     SendEmailVerificationCodeRequest request,
@@ -43,7 +58,8 @@ emailGroup.MapPost("/send-code", async (
     }
 
     return Results.Ok(result);
-});
+})
+    .WithName("SendEmailVerificationCode");
 
 emailGroup.MapPost("/verify-code", async (
     VerifyEmailVerificationCodeRequest request,
@@ -57,7 +73,8 @@ emailGroup.MapPost("/verify-code", async (
     }
 
     return Results.Ok(result);
-});
+})
+    .WithName("VerifyEmailVerificationCode");
 
 authGroup.MapGet("/check-username", async (
     string username,
@@ -84,7 +101,8 @@ authGroup.MapGet("/check-username", async (
     }
 
     return Results.Ok(CheckUsernameAvailabilityResult.AvailableResult("사용 가능한 ID입니다."));
-});
+})
+    .WithName("CheckUsernameAvailability");
 
 authGroup.MapPost("/signup", async (
     RegisterRequest request,
@@ -173,7 +191,8 @@ authGroup.MapPost("/signup", async (
     await db.SaveChangesAsync(cancellationToken);
 
     return Results.Ok(RegisterResult.Succeeded());
-});
+})
+    .WithName("Signup");
 
 app.Run();
 

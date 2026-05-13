@@ -34,6 +34,12 @@ public partial class App : System.Windows.Application
             })
             .ConfigureServices((context, services) =>
             {
+                if (!IsExplicitlyEnabled(context.Configuration["Desktop:AllowDirectDatabaseAccess"]))
+                {
+                    throw new InvalidOperationException(
+                        "데스크톱 직접 DB 연결이 비활성화되어 있습니다. 개발 환경에서만 ERP_DESKTOP_ALLOW_DIRECT_DB=true로 설정하세요. 운영 배포는 API를 통해 DB에 접근하도록 구성하세요.");
+                }
+
                 services.AddInfrastructure(context.Configuration);
 
                 var authApiBaseUrl = ResolveValue(context.Configuration["AuthApi:BaseUrl"]);
@@ -210,6 +216,21 @@ public partial class App : System.Windows.Application
         }
 
         return trimmed;
+    }
+
+    private static bool IsExplicitlyEnabled(string? value)
+    {
+        var resolved = ResolveValue(value);
+        if (string.IsNullOrWhiteSpace(resolved))
+        {
+            return false;
+        }
+
+        return resolved.Trim().ToLowerInvariant() switch
+        {
+            "true" or "1" or "yes" or "y" or "on" => true,
+            _ => false
+        };
     }
 
     private static void LoadDotEnvIfExists()
