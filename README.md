@@ -61,6 +61,31 @@ GitHub Release의 `erp-v1.0.3-win-x64.zip` 파일에는 `AuthApi`와 `Desktop` �
 - 현재 Desktop 앱은 포트폴리오 실행 편의를 위해 일부 기능에서 DB에 직접 접근합니다.
   운영 환경에서는 Desktop이 DB에 직접 접근하지 않고 AuthApi를 통해 업무 기능을 처리하는 구조가 권장됩니다.
 
+## 현재 상태 및 최신 업데이트
+
+- 이메일 인증 코드 만료 및 발송 제한을 적용했습니다.
+- Windows x64 self-contained 릴리스와 AuthApi/Desktop 실행 파일을 함께 제공합니다.
+- GitHub Actions 기반 릴리스 자동화 구성을 사용합니다.
+
+## English Overview
+
+This project combines a WPF ERP desktop application with an ASP.NET Core Auth API. It covers purchasing, ordering, inventory, user permissions, email-verified registration, and audit logging in an executable portfolio project.
+
+### Key Features
+
+- Purchasing, order, shipment, and inventory workflows
+- Position- and permission-based access control
+- Email verification with a three-minute code expiry and sending cooldown
+- Lot/serial tracking, stock adjustments, and audit logs
+- Self-contained Windows x64 release with Docker and GitHub Actions support
+
+### Tech Stack
+
+- C#, .NET 8, WPF
+- ASP.NET Core Minimal API, Entity Framework Core
+- PostgreSQL, Docker, GitHub Actions
+- xUnit
+
 ## 향후 개선 사항
 
 - Desktop 업무 기능의 AuthApi 이전
